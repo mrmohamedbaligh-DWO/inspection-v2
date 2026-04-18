@@ -185,6 +185,32 @@
     <div class="kpi-card kpi-valid" onclick="filterDash('valid','sl')"><div class="kpi-label">Valid</div><div class="kpi-value" id="sl-valid">—</div><div class="kpi-tap">tap to view ›</div></div>
     <div class="kpi-card kpi-active" onclick="filterDash('all','sl')"><div class="kpi-label">Total Items</div><div class="kpi-value" id="sl-total">—</div><div class="kpi-tap">tap to view ›</div></div>
   </div>
+  <!-- Charts Section -->
+  <div style="padding:8px 12px 0;" id="charts-section" style="display:none;">
+
+    <!-- Equipment Donut Chart -->
+    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid #EBEBEB;">
+      <div style="font-size:12px;font-weight:600;color:#1F3864;margin-bottom:10px;">Equipment Status Overview</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="position:relative;width:90px;height:90px;flex-shrink:0;">
+          <canvas id="donut-chart" width="90" height="90"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+            <div id="donut-total" style="font-size:14px;font-weight:700;color:#1F3864;line-height:1;">—</div>
+            <div style="font-size:9px;color:#888;">total</div>
+          </div>
+        </div>
+        <div style="flex:1;" id="donut-legend"></div>
+      </div>
+    </div>
+
+    <!-- Expired by Package Bar Chart -->
+    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid #EBEBEB;">
+      <div style="font-size:12px;font-weight:600;color:#1F3864;margin-bottom:10px;">Expired by Package ID</div>
+      <div id="pkg-bar-chart"></div>
+    </div>
+
+  </div>
+
   <div class="results-area" id="dash-results"></div>
 </div>
 
@@ -608,6 +634,7 @@ async function loadAllData() {
 
     updateKPIs();
     populateDropdowns();
+    renderCharts();
     document.getElementById('dash-results').innerHTML = '<div class="empty">Tap a card above to view equipment</div>';
   } catch(e) {
     showToast('Could not load data');
@@ -630,6 +657,91 @@ function dateColor(s) { return {expired:'var(--red)',expiring:'var(--orange)',wa
 function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
 
 // ── KPIs ───────────────────────────────────────────────────
+let donutChartInstance = null;
+
+function renderCharts() {
+  if (!eqData.length) return;
+  document.getElementById('charts-section').style.display = 'block';
+
+  // ── Donut Chart ──────────────────────────────────────────
+  let expired=0, expiring=0, valid=0;
+  eqData.forEach(r => {
+    const s = getStatus(r.expiry_date);
+    if (s==='expired') expired++;
+    else if (s==='expiring') expiring++;
+    else if (s==='valid'||s==='watch') valid++;
+  });
+  const total = expired + expiring + valid;
+  document.getElementById('donut-total').textContent = total;
+
+  // Legend
+  document.getElementById('donut-legend').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
+        <div style="width:10px;height:10px;border-radius:2px;background:#00B050;flex-shrink:0;"></div>Valid
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#00B050;">${Math.round(valid/total*100)}%</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
+        <div style="width:10px;height:10px;border-radius:2px;background:#C00000;flex-shrink:0;"></div>Expired
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#C00000;">${Math.round(expired/total*100)}%</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
+        <div style="width:10px;height:10px;border-radius:2px;background:#ED7D31;flex-shrink:0;"></div>Expiring
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#ED7D31;">${Math.round(expiring/total*100)}%</span>
+    </div>`;
+
+  const ctx = document.getElementById('donut-chart').getContext('2d');
+  if (donutChartInstance) donutChartInstance.destroy();
+  donutChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Valid', 'Expired', 'Expiring Soon'],
+      datasets: [{
+        data: [valid, expired, expiring],
+        backgroundColor: ['#00B050', '#C00000', '#ED7D31'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: false,
+      cutout: '65%',
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: (ctx) => ` ${ctx.label}: ${ctx.raw}`
+      }}}
+    }
+  });
+
+  // ── Expired by Package Bar Chart ─────────────────────────
+  const pkgCount = {};
+  eqData.forEach(r => {
+    if (getStatus(r.expiry_date) === 'expired') {
+      const pkg = r.package_id || 'No Package';
+      pkgCount[pkg] = (pkgCount[pkg] || 0) + 1;
+    }
+  });
+  const sorted = Object.entries(pkgCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxVal = sorted.length ? sorted[0][1] : 1;
+
+  if (sorted.length === 0) {
+    document.getElementById('pkg-bar-chart').innerHTML = '<div style="text-align:center;font-size:12px;color:#00B050;padding:10px;">✅ No expired equipment!</div>';
+  } else {
+    document.getElementById('pkg-bar-chart').innerHTML = sorted.map(([pkg, count]) => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="font-size:10px;color:#888;width:55px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${pkg}">${pkg}</div>
+        <div style="flex:1;height:16px;background:#f5f5f5;border-radius:4px;overflow:hidden;">
+          <div style="height:100%;background:#C00000;border-radius:4px;width:${Math.round(count/maxVal*100)}%;transition:width 0.5s;"></div>
+        </div>
+        <div style="font-size:10px;font-weight:600;color:#C00000;width:22px;">${count}</div>
+      </div>`).join('');
+  }
+}
+
 function updateKPIs() {
   let exp=0,expi=0,val=0;
   const units=new Set(), activeU=new Set();
@@ -1306,5 +1418,6 @@ function generateReport() {
   showToast('✓ Report downloaded!');
 }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
 </html>
