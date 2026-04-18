@@ -116,6 +116,14 @@
   .filter-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
   .audit-row { padding: 10px 14px; border-bottom: 1px solid var(--border); }
   .audit-row:last-child { border-bottom: none; }
+  .btn-delete { background: var(--red-light); color: var(--red); border: none; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; flex-shrink: 0; margin-left: 6px; }
+  .btn-delete:active { opacity: 0.8; }
+  .report-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; z-index: 200; }
+  .report-modal.active { display: flex; }
+  .report-box { background: #fff; border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-width: 480px; margin: 0 auto; }
+  .report-option { padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .report-option:active { background: var(--blue-light); }
+  .report-option.selected { border-color: var(--navy); background: var(--blue-light); color: var(--navy); }
 </style>
 </head>
 <body>
@@ -140,8 +148,9 @@
       <div class="header-title">Equipment Inspection</div>
       <div class="header-date" id="today-date"></div>
     </div>
-    <div id="header-user-box" style="display:none;align-items:center;gap:8px;">
+    <div id="header-user-box" style="display:none;align-items:center;gap:6px;">
       <span id="header-user" style="color:#BDD7EE;font-size:12px;font-weight:500;"></span>
+      <button id="report-btn" onclick="openReport()" style="display:none;background:var(--green);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">📊 Report</button>
       <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;">Logout</button>
     </div>
   </div>
@@ -314,6 +323,42 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Report Modal -->
+<div class="report-modal" id="report-modal">
+  <div class="report-box">
+    <div class="modal-handle"></div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:4px;">📊 Export Report</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Choose what to export as Excel</div>
+
+    <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Sheet</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="report-option" id="ropt-eq" onclick="selectReport('sheet','equipment')" style="flex:1;text-align:center;">Equipment</button>
+      <button class="report-option" id="ropt-sl" onclick="selectReport('sheet','sling_mpi')" style="flex:1;text-align:center;">Sling / MPI</button>
+    </div>
+
+    <div id="report-filter-section" style="display:none;">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Status</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="report-option" id="ropt-all" onclick="selectReport('status','all')" style="flex:1;text-align:center;">All</button>
+        <button class="report-option" id="ropt-exp" onclick="selectReport('status','expired')" style="flex:1;text-align:center;">Expired</button>
+        <button class="report-option" id="ropt-expi" onclick="selectReport('status','expiring')" style="flex:1;text-align:center;">Expiring (30d)</button>
+        <button class="report-option" id="ropt-val" onclick="selectReport('status','valid')" style="flex:1;text-align:center;">Valid</button>
+      </div>
+
+      <div id="report-sub-section" style="display:none;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;" id="report-sub-label">Filter</div>
+        <select id="report-sub-select" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:14px;">
+          <option value="">All</option>
+        </select>
+      </div>
+
+      <button onclick="generateReport()" style="width:100%;background:var(--green);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">⬇️ Download Excel</button>
+    </div>
+
+    <button onclick="closeReport()" style="width:100%;background:var(--gray-light);color:var(--muted);border:none;border-radius:12px;padding:12px;font-size:13px;cursor:pointer;font-family:inherit;margin-top:8px;">Cancel</button>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://zgsxvutcynigrfbosmvm.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpnc3h2dXRjeW5pZ3JmYm9zbXZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0ODczMDIsImV4cCI6MjA5MjA2MzMwMn0.rG432Q-L3pL34HL2q2fvt_Z1nHViiwc8nCZcocwKNmk';
@@ -380,7 +425,10 @@ function onLoginSuccess() {
   document.getElementById('header-user').textContent = currentUser;
   document.getElementById('header-user-box').style.display = 'flex';
   document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'long',year:'numeric'});
-  if (currentRole === 'Admin') document.getElementById('tab-audit-btn').style.display = 'block';
+  if (currentRole === 'Admin') {
+    document.getElementById('tab-audit-btn').style.display = 'block';
+    document.getElementById('report-btn').style.display = 'block';
+  }
   loadAllData();
 }
 
@@ -390,6 +438,7 @@ function doLogout() {
   eqData = []; slData = [];
   document.getElementById('header-user-box').style.display = 'none';
   document.getElementById('tab-audit-btn').style.display = 'none';
+  document.getElementById('report-btn').style.display = 'none';
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').style.display = 'none';
@@ -594,9 +643,10 @@ function renderEqCards(data, headerColor) {
     const badgeStyle = {expired:'background:#FFEBEB;color:var(--red)',expiring:'background:#FFF3EB;color:var(--orange)',watch:'background:#FFFBEB;color:#7a5800',valid:'background:#EAFAF0;color:var(--green)'}[us];
     const rows = g.items.map(item => {
       const s = getStatus(item.expiry_date);
+      const delBtn = currentRole==='Admin' ? `<button class="btn-delete" onclick="event.stopPropagation();deleteItem('equipment','${item.id}','${(item.equipment||'').replace(/'/g,'')}')" >🗑</button>` : '';
       return `<div class="equip-row" onclick='openEditEq(${JSON.stringify(item)})'>
-        <div><div class="eq-name">${item.equipment||'—'}</div><div class="eq-sub">${item.inspection_type||''}${item.serial_number?' · '+item.serial_number:''}</div></div>
-        <div class="eq-right"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>
+        <div style="flex:1;min-width:0;"><div class="eq-name">${item.equipment||'—'}</div><div class="eq-sub">${item.inspection_type||''}${item.serial_number?' · '+item.serial_number:''}</div></div>
+        <div class="eq-right" style="display:flex;align-items:center;gap:6px;"><div style="text-align:right;"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>${delBtn}</div>
       </div>`;
     }).join('');
     return `<div class="result-card"><div class="result-card-header" style="background:${headerColor||'var(--navy)'}">
@@ -621,10 +671,11 @@ function renderSlingCards(data) {
     const badgeStyle = {expired:'background:#FFEBEB;color:var(--red)',expiring:'background:#FFF3EB;color:var(--orange)',watch:'background:#FFFBEB;color:#7a5800',valid:'background:#EAFAF0;color:var(--green)'}[us];
     const rows = items.map(item => {
       const s = getStatus(item.expiry_date);
+      const delBtn = currentRole==='Admin' ? `<button class="btn-delete" onclick="event.stopPropagation();deleteItem('sling_mpi','${item.id}','${(item.serial_number||'').replace(/'/g,'')}')" >🗑</button>` : '';
       return `<div class="equip-row" onclick='openEditSl(${JSON.stringify(item)})'>
-        <div><div class="eq-name">${item.serial_number||'—'}</div>
+        <div style="flex:1;min-width:0;"><div class="eq-name">${item.serial_number||'—'}</div>
         <div class="eq-sub">${item.inspection_type||''}${item.capacity_ton?' · '+item.capacity_ton+'T':''}${item.location?' · 📍 '+item.location:''}</div></div>
-        <div class="eq-right"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>
+        <div class="eq-right" style="display:flex;align-items:center;gap:6px;"><div style="text-align:right;"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>${delBtn}</div>
       </div>`;
     }).join('');
     return `<div class="result-card"><div class="result-card-header" style="background:var(--blue)">
@@ -717,6 +768,7 @@ async function submitEquipment() {
   const pkg=document.getElementById('f1-pkg').value.trim();
   const active=document.getElementById('f1-active').value;
   if (!unit||!category||!equipment||!insptype||!expiry) { showToast('Please fill required fields *'); return; }
+  if (serial && await checkSerial('equipment', serial)) { showToast('⚠️ Serial number already exists!'); return; }
   try {
     await apiPost('equipment', {unit_number:unit,category,equipment,serial_number:serial,inspection_type:insptype,expiry_date:expiry,package_id:pkg,active});
     await apiPost('audit_log', {username:currentUser, action:'Add Equipment', sheet:'equipment', details:`${unit} | ${equipment} | ${serial}`});
@@ -736,6 +788,7 @@ async function submitSling() {
   const leg=document.getElementById('f2-leg').value.trim();
   const location=document.getElementById('f2-location').value;
   if (!type||!insptype||!serial||!expiry) { showToast('Please fill required fields *'); return; }
+  if (await checkSerial('sling_mpi', serial)) { showToast('⚠️ Serial number already exists!'); return; }
   try {
     await apiPost('sling_mpi', {equipment_type:type,inspection_type:insptype,serial_number:serial,expiry_date:expiry,status:'Valid',capacity_ton:capacity,leg,location});
     await apiPost('audit_log', {username:currentUser, action:'Add Sling/MPI', sheet:'sling_mpi', details:`${type} | ${serial}`});
@@ -810,6 +863,121 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ── Delete Item ────────────────────────────────────────────
+async function deleteItem(table, id, name) {
+  if (!confirm(`Delete "${name}"?\nThis cannot be undone.`)) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    await apiPost('audit_log', {username:currentUser, action:'Delete', sheet:table, details:name});
+    if (table==='equipment') {
+      eqData = eqData.filter(r=>r.id!==id);
+      updateKPIs();
+    } else {
+      slData = slData.filter(r=>r.id!==id);
+      updateKPIs();
+      renderSlings(slData);
+    }
+    showToast('🗑 Deleted!');
+  } catch(e) { showToast('Error deleting'); }
+}
+
+// ── Serial Number Check ────────────────────────────────────
+async function checkSerial(table, serial) {
+  if (!serial) return false;
+  const existing = table==='equipment'
+    ? eqData.filter(r=>(r.serial_number||'').toLowerCase()===serial.toLowerCase())
+    : slData.filter(r=>(r.serial_number||'').toLowerCase()===serial.toLowerCase());
+  return existing.length > 0;
+}
+
+// ── Report Modal ───────────────────────────────────────────
+let reportSheet = '', reportStatus = '';
+
+function openReport() {
+  reportSheet=''; reportStatus='';
+  document.querySelectorAll('.report-option').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('report-filter-section').style.display='none';
+  document.getElementById('report-sub-section').style.display='none';
+  document.getElementById('report-modal').classList.add('active');
+}
+function closeReport() { document.getElementById('report-modal').classList.remove('active'); }
+
+function selectReport(type, value) {
+  if (type==='sheet') {
+    reportSheet=value; reportStatus='';
+    document.querySelectorAll('[id^="ropt-"]').forEach(b=>b.classList.remove('selected'));
+    document.getElementById(`ropt-${value==='equipment'?'eq':'sl'}`).classList.add('selected');
+    document.getElementById('report-filter-section').style.display='block';
+    document.getElementById('report-sub-section').style.display='none';
+    // populate sub filter
+    const sel = document.getElementById('report-sub-select');
+    const label = document.getElementById('report-sub-label');
+    if (value==='equipment') {
+      label.textContent='Package ID';
+      const pkgs = [...new Set(eqData.map(r=>r.package_id).filter(Boolean))].sort();
+      sel.innerHTML='<option value="">All Packages</option>'+pkgs.map(p=>`<option value="${p}">${p}</option>`).join('');
+    } else {
+      label.textContent='Equipment Type';
+      const types=[...new Set(slData.map(r=>r.equipment_type).filter(Boolean))].sort();
+      sel.innerHTML='<option value="">All Types</option>'+types.map(t=>`<option value="${t}">${t}</option>`).join('');
+    }
+  } else {
+    reportStatus=value;
+    ['all','exp','expi','val'].forEach(k=>document.getElementById(`ropt-${k}`).classList.remove('selected'));
+    const map={all:'ropt-all',expired:'ropt-exp',expiring:'ropt-expi',valid:'ropt-val'};
+    document.getElementById(map[value]).classList.add('selected');
+    document.getElementById('report-sub-section').style.display='block';
+  }
+}
+
+function generateReport() {
+  if (!reportSheet || !reportStatus) { showToast('Please select sheet and status'); return; }
+  const subVal = document.getElementById('report-sub-select').value;
+
+  let data, headers, rows;
+
+  if (reportSheet==='equipment') {
+    data = eqData.filter(r => {
+      const s = getStatus(r.expiry_date);
+      const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
+      const subMatch = subVal ? (r.package_id||'')=== subVal : true;
+      return statusMatch && subMatch;
+    });
+    headers = ['Unit Number','Category','Equipment','Serial Number','Inspection Type','Expiry Date','Package ID','Status'];
+    rows = data.map(r => [r.unit_number,r.category,r.equipment,r.serial_number,r.inspection_type,r.expiry_date||'',r.package_id||'',statusLabel(getStatus(r.expiry_date))]);
+  } else {
+    data = slData.filter(r => {
+      const s = getStatus(r.expiry_date);
+      const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
+      const subMatch = subVal ? (r.equipment_type||'')=== subVal : true;
+      return statusMatch && subMatch;
+    });
+    headers = ['Equipment Type','Inspection Type','Serial Number','Expiry Date','Capacity (Ton)','LEG','Location','Status'];
+    rows = data.map(r => [r.equipment_type,r.inspection_type,r.serial_number,r.expiry_date||'',r.capacity_ton||'',r.leg||'',r.location||'',statusLabel(getStatus(r.expiry_date))]);
+  }
+
+  if (!data.length) { showToast('No data to export'); return; }
+
+  // Build CSV then download as xls (Excel-compatible)
+  const csvContent = [headers, ...rows].map(row =>
+    row.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')
+  ).join('\n');
+
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const statusNames = {all:'All',expired:'Expired',expiring:'Expiring',valid:'Valid'};
+  a.href=url;
+  a.download=`${reportSheet}_${statusNames[reportStatus]}${subVal?'_'+subVal:''}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  closeReport();
+  showToast('✓ Report downloaded!');
 }
 </script>
 </body>
