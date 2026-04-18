@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Equipment Inspection</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --navy: #1F3864; --blue: #2E75B6; --blue-light: #EBF2FF;
+    --red: #C00000; --red-light: #FFEBEB;
+    --orange: #ED7D31; --orange-light: #FFF3EB;
+    --green: #00B050; --green-light: #EAFAF0;
+    --border: #EBEBEB; --text: #1a1a1a; --muted: #888;
+    --gray-light: #F5F5F5;
+  }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #F0F4F8; color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+  .header { background: var(--navy); padding: 16px 16px 0; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .header-title { color: #fff; font-size: 17px; font-weight: 600; }
+  .header-date { color: #BDD7EE; font-size: 11px; margin-top: 2px; }
+  .tabs { display: flex; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 10px 10px; font-size: 11px; color: rgba(255,255,255,0.45); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; }
+  .tab.active { color: #fff; font-weight: 600; border-bottom-color: #fff; }
+  .tab-content { display: none; padding-bottom: 24px; }
+  .tab-content.active { display: block; }
+
+  .kpi-section-label { padding: 12px 12px 4px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px 8px; }
+  .kpi-card { background: #fff; border-radius: 12px; padding: 12px; border-left: 3px solid transparent; cursor: pointer; }
+  .kpi-card:active { opacity: 0.85; }
+  .kpi-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .kpi-value { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 2px; }
+  .kpi-tap { font-size: 10px; color: #bbb; }
+  .kpi-expired { border-color: var(--red); } .kpi-expired .kpi-value { color: var(--red); }
+  .kpi-expiring { border-color: var(--orange); } .kpi-expiring .kpi-value { color: var(--orange); }
+  .kpi-valid { border-color: var(--green); } .kpi-valid .kpi-value { color: var(--green); }
+  .kpi-active { border-color: var(--navy); } .kpi-active .kpi-value { color: var(--navy); }
+
+  .search-section { padding: 12px 12px 0; }
+  .search-box { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .search-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 7px; }
+  .search-row { display: flex; gap: 7px; }
+  .search-input { flex: 1; background: var(--blue-light); border: none; border-radius: 9px; padding: 9px 12px; font-size: 13px; color: var(--navy); font-weight: 500; outline: none; font-family: inherit; }
+  .search-input::placeholder { color: #aac4e8; font-weight: 400; }
+  .search-btn { background: var(--navy); color: #fff; border: none; border-radius: 9px; padding: 9px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .clear-btn { background: var(--gray-light); color: var(--muted); border: none; border-radius: 9px; padding: 9px 10px; font-size: 12px; cursor: pointer; }
+  select.search-input { cursor: pointer; }
+
+  .results-area { padding: 10px 12px 0; }
+  .section-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .result-card { background: #fff; border-radius: 12px; overflow: hidden; margin-bottom: 10px; border: 1px solid var(--border); }
+  .result-card-header { padding: 9px 12px; display: flex; justify-content: space-between; align-items: center; }
+  .rch-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .rch-sub { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 1px; }
+  .rch-badge { font-size: 10px; padding: 3px 8px; border-radius: 8px; font-weight: 600; white-space: nowrap; }
+  .equip-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .equip-row:last-child { border-bottom: none; }
+  .equip-row:active { background: var(--gray-light); }
+  .eq-name { font-size: 12px; font-weight: 500; }
+  .eq-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .eq-right { text-align: right; flex-shrink: 0; margin-left: 8px; }
+  .eq-date { font-size: 10px; font-weight: 500; margin-bottom: 3px; }
+  .pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 7px; }
+  .pill-expired { background: var(--red-light); color: var(--red); }
+  .pill-expiring { background: var(--orange-light); color: var(--orange); }
+  .pill-watch { background: #FFFBEB; color: #7a5800; }
+  .pill-valid { background: var(--green-light); color: var(--green); }
+
+  .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: flex; align-items: flex-end; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .modal-overlay.active { opacity: 1; pointer-events: all; }
+  .modal { background: #fff; border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-width: 480px; margin: 0 auto; transform: translateY(100%); transition: transform 0.25s ease; }
+  .modal-overlay.active .modal { transform: translateY(0); }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+  .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .modal-user { font-size: 11px; color: var(--navy); font-weight: 500; margin-bottom: 12px; background: var(--blue-light); padding: 5px 10px; border-radius: 8px; display: none; }
+  .modal-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 6px; margin-top: 10px; }
+  .modal-input { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 13px; font-size: 15px; font-family: inherit; outline: none; color: var(--text); }
+  .modal-input:focus { border-color: var(--navy); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-cancel { flex: 1; padding: 12px; border-radius: 11px; border: 1.5px solid var(--border); background: #fff; color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  .btn-save { flex: 2; padding: 12px; border-radius: 11px; border: none; background: var(--navy); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-save:disabled { opacity: 0.6; }
+
+  .loading { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty { text-align: center; padding: 36px 20px; color: var(--muted); font-size: 13px; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1a1a; color: #fff; padding: 11px 18px; border-radius: 12px; font-size: 13px; font-weight: 500; z-index: 300; transition: transform 0.25s ease; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Login */
+  #login-screen { position: fixed; top:0; left:0; right:0; bottom:0; background: var(--navy); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
+  .login-box { width: 100%; max-width: 300px; display: grid; gap: 10px; }
+  .login-input { width: 100%; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 13px 16px; color: #fff; font-size: 15px; font-family: inherit; outline: none; }
+  .login-input::placeholder { color: rgba(255,255,255,0.5); }
+  .login-btn { width: 100%; background: #fff; color: var(--navy); border: none; border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  /* Add form */
+  .form-grid { display: grid; gap: 8px; }
+  .form-group { }
+  .form-input { width: 100%; background: var(--gray-light); border: none; border-radius: 9px; padding: 9px 12px; font-size: 13px; color: var(--text); font-family: inherit; outline: none; }
+  .form-select { width: 100%; background: var(--gray-light); border: none; border-radius: 9px; padding: 9px 12px; font-size: 13px; color: var(--text); font-family: inherit; outline: none; cursor: pointer; }
+  .sheet-toggle { display: flex; gap: 8px; margin-bottom: 10px; }
+  .sheet-btn { flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--border); background: #fff; color: var(--muted); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  .sheet-btn.active { border-color: var(--navy); background: var(--navy); color: #fff; font-weight: 600; }
+  .submit-btn { width: 100%; padding: 13px; border-radius: 12px; border: none; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 4px; }
+
+  /* Audit */
+  .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .filter-btn { padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--muted); font-size: 11px; cursor: pointer; font-family: inherit; }
+  .filter-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .audit-row { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .audit-row:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div style="margin-bottom:28px;text-align:center;">
+    <div style="font-size:44px;margin-bottom:12px;">🔒</div>
+    <div style="color:#fff;font-size:20px;font-weight:700;margin-bottom:4px;">Equipment Inspection</div>
+    <div style="color:#BDD7EE;font-size:12px;">Sign in to continue</div>
+  </div>
+  <div class="login-box">
+    <input class="login-input" id="login-username" type="text" placeholder="Username" onkeydown="if(event.key==='Enter') document.getElementById('login-password').focus()" />
+    <input class="login-input" id="login-password" type="password" placeholder="Password" onkeydown="if(event.key==='Enter') doLogin()" />
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Sign In</button>
+    <div id="login-error" style="color:#ff8888;font-size:12px;text-align:center;display:none;">Incorrect username or password</div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">Equipment Inspection</div>
+      <div class="header-date" id="today-date"></div>
+    </div>
+    <div id="header-user-box" style="display:none;align-items:center;gap:8px;">
+      <span id="header-user" style="color:#BDD7EE;font-size:12px;font-weight:500;"></span>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;">Logout</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+    <div class="tab" onclick="switchTab('unit')">Search</div>
+    <div class="tab" onclick="switchTab('package')">Package</div>
+    <div class="tab" onclick="switchTab('sling')">Sling/MPI</div>
+    <div class="tab" onclick="switchTab('add')">+ Add</div>
+    <div class="tab" id="tab-audit-btn" onclick="switchTab('audit')" style="display:none;">Audit</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="tab-content active" id="tab-dashboard">
+  <div class="kpi-section-label">Equipment Sheet</div>
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-expired" onclick="filterDash('expired','eq')"><div class="kpi-label">Expired</div><div class="kpi-value" id="eq-expired">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-expiring" onclick="filterDash('expiring','eq')"><div class="kpi-label">Expiring (30d)</div><div class="kpi-value" id="eq-expiring">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-valid" onclick="filterDash('valid','eq')"><div class="kpi-label">Valid</div><div class="kpi-value" id="eq-valid">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-active" onclick="filterDash('active','eq')"><div class="kpi-label">Active Units</div><div class="kpi-value" id="eq-active">—</div><div class="kpi-tap" id="eq-active-sub">of — units</div></div>
+  </div>
+  <div class="kpi-section-label">Sling / MPI</div>
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-expired" onclick="filterDash('expired','sl')"><div class="kpi-label">Expired</div><div class="kpi-value" id="sl-expired">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-expiring" onclick="filterDash('expiring','sl')"><div class="kpi-label">Expiring (30d)</div><div class="kpi-value" id="sl-expiring">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-valid" onclick="filterDash('valid','sl')"><div class="kpi-label">Valid</div><div class="kpi-value" id="sl-valid">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-active" onclick="filterDash('all','sl')"><div class="kpi-label">Total Items</div><div class="kpi-value" id="sl-total">—</div><div class="kpi-tap">tap to view ›</div></div>
+  </div>
+  <div class="results-area" id="dash-results"></div>
+</div>
+
+<!-- UNIT SEARCH -->
+<div class="tab-content" id="tab-unit">
+  <div class="search-section">
+    <div class="search-box">
+      <div class="search-label">Enter Unit Number</div>
+      <div class="search-row">
+        <input class="search-input" id="unit-input" placeholder="e.g. OHS-186" onkeydown="if(event.key==='Enter') searchUnit()" />
+        <button class="search-btn" onclick="searchUnit()">Search</button>
+        <button class="clear-btn" onclick="clearUnit()">✕</button>
+      </div>
+    </div>
+  </div>
+  <div class="results-area" id="unit-results"><div class="empty">Enter a unit number to search</div></div>
+</div>
+
+<!-- PACKAGE -->
+<div class="tab-content" id="tab-package">
+  <div class="search-section">
+    <div class="search-box">
+      <div class="search-label">Enter Package ID</div>
+      <div class="search-row">
+        <input class="search-input" id="pkg-input" placeholder="e.g. SA, CTU-726" onkeydown="if(event.key==='Enter') searchPackage()" />
+        <button class="search-btn" onclick="searchPackage()">Search</button>
+        <button class="clear-btn" onclick="clearPackage()">✕</button>
+      </div>
+    </div>
+  </div>
+  <div class="results-area" id="pkg-results"><div class="empty">Enter a Package ID to search</div></div>
+</div>
+
+<!-- SLING/MPI -->
+<div class="tab-content" id="tab-sling">
+  <div class="search-section">
+    <div class="search-box">
+      <div class="search-label">Filter by Type</div>
+      <div class="search-row">
+        <select class="search-input" id="sling-filter" style="flex:1;">
+          <option value="">All</option>
+        </select>
+        <button class="search-btn" onclick="filterSling()">Filter</button>
+        <button class="clear-btn" onclick="clearSling()">✕</button>
+      </div>
+      <div style="margin-top:8px;">
+        <div class="search-label" style="margin-bottom:5px;">Search by Serial Number</div>
+        <div class="search-row">
+          <input class="search-input" id="sling-serial" placeholder="e.g. MF-105, SA-215" onkeydown="if(event.key==='Enter') filterSling()" />
+          <button class="search-btn" onclick="filterSling()">Search</button>
+          <button class="clear-btn" onclick="clearSling()">✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="results-area" id="sling-results"><div class="loading"><div class="spinner"></div><p>Loading...</p></div></div>
+</div>
+
+<!-- ADD -->
+<div class="tab-content" id="tab-add">
+  <div class="search-section" style="padding-bottom:12px;">
+    <div class="sheet-toggle">
+      <button class="sheet-btn active" id="btn-eq" onclick="selectAddSheet('eq')">Equipment</button>
+      <button class="sheet-btn" id="btn-sl" onclick="selectAddSheet('sl')">Sling / MPI</button>
+    </div>
+
+    <div class="search-box" id="form-eq">
+      <div class="search-label" style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:10px;">New Equipment</div>
+      <div class="form-grid">
+        <div class="form-group"><div class="search-label">Unit Number *</div><input class="form-input" id="f1-unit" placeholder="e.g. OHS-186" /></div>
+        <div class="form-group"><div class="search-label">Category *</div><select class="form-select" id="f1-category"><option value="">-- Select --</option></select></div>
+        <div class="form-group"><div class="search-label">Equipment *</div><select class="form-select" id="f1-equipment"><option value="">-- Select --</option></select></div>
+        <div class="form-group"><div class="search-label">Serial Number</div><input class="form-input" id="f1-serial" placeholder="e.g. OHS-186" /></div>
+        <div class="form-group"><div class="search-label">Inspection Type *</div><select class="form-select" id="f1-insptype"><option value="">-- Select --</option></select></div>
+        <div class="form-group"><div class="search-label">Expiry Date *</div><input class="form-input" type="date" id="f1-expiry" /></div>
+        <div class="form-group"><div class="search-label">Package ID</div><input class="form-input" id="f1-pkg" placeholder="e.g. SA, CTU-726" /></div>
+        <div class="form-group"><div class="search-label">Active</div><select class="form-select" id="f1-active"><option value="Yes">Yes</option><option value="No">No</option></select></div>
+        <button class="submit-btn" style="background:var(--navy);" onclick="submitEquipment()">Add Equipment</button>
+      </div>
+    </div>
+
+    <div class="search-box" id="form-sl" style="display:none;">
+      <div class="search-label" style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:10px;">New Sling / MPI</div>
+      <div class="form-grid">
+        <div class="form-group"><div class="search-label">Equipment Type *</div><select class="form-select" id="f2-type"><option value="">-- Select --</option></select></div>
+        <div class="form-group"><div class="search-label">Inspection Type *</div><select class="form-select" id="f2-insptype"><option value="">-- Select --</option></select></div>
+        <div class="form-group"><div class="search-label">Serial Number *</div><input class="form-input" id="f2-serial" placeholder="e.g. MF-105" /></div>
+        <div class="form-group"><div class="search-label">Expiry Date *</div><input class="form-input" type="date" id="f2-expiry" /></div>
+        <div class="form-group"><div class="search-label">Capacity (Ton)</div><input class="form-input" id="f2-capacity" placeholder="e.g. 18" /></div>
+        <div class="form-group"><div class="search-label">LEG</div><input class="form-input" id="f2-leg" placeholder="e.g. 4" /></div>
+        <div class="form-group"><div class="search-label">Location</div><select class="form-select" id="f2-location"><option value="">-- Select --</option></select></div>
+        <button class="submit-btn" style="background:var(--blue);" onclick="submitSling()">Add Sling / MPI</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AUDIT -->
+<div class="tab-content" id="tab-audit">
+  <div class="search-section">
+    <div class="search-box">
+      <div class="search-label">Search by Serial / Details</div>
+      <div class="search-row">
+        <input class="search-input" id="audit-search" placeholder="Serial number or details..." onkeydown="if(event.key==='Enter') filterAudit()" />
+        <button class="search-btn" onclick="filterAudit()">Search</button>
+        <button class="clear-btn" onclick="clearAudit()">✕</button>
+      </div>
+      <div class="filter-btns">
+        <button class="filter-btn active" id="af-all" onclick="filterAuditBySheet('')">All</button>
+        <button class="filter-btn" id="af-eq" onclick="filterAuditBySheet('equipment')">Equipment</button>
+        <button class="filter-btn" id="af-sl" onclick="filterAuditBySheet('sling_mpi')">Sling/MPI</button>
+      </div>
+    </div>
+  </div>
+  <div class="results-area" id="audit-results"><div class="empty">Loading...</div></div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Equipment</div>
+    <div class="modal-sub" id="modal-sub">Unit — Type</div>
+    <div class="modal-user" id="modal-user">Editing as: <span id="modal-username"></span></div>
+    <div class="modal-label">Expiry Date</div>
+    <input class="modal-input" type="date" id="modal-date" />
+    <div id="modal-pkg-box" style="display:none;">
+      <div class="modal-label">Package ID</div>
+      <input class="modal-input" type="text" id="modal-pkg" placeholder="e.g. SA, CTU-726" />
+    </div>
+    <div id="modal-loc-box" style="display:none;">
+      <div class="modal-label">Location</div>
+      <input class="modal-input" type="text" id="modal-loc" placeholder="e.g. Yard, Field" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="save-btn" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://zgsxvutcynigrfbosmvm.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpnc3h2dXRjeW5pZ3JmYm9zbXZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0ODczMDIsImV4cCI6MjA5MjA2MzMwMn0.rG432Q-L3pL34HL2q2fvt_Z1nHViiwc8nCZcocwKNmk';
+
+const api = async (table, params = '') => {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    }
+  });
+  return res.json();
+};
+
+const apiPost = async (table, data) => {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  return res.json();
+};
+
+const apiPatch = async (table, filter, data) => {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
+    method: 'PATCH',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  return res.json();
+};
+
+let currentUser = null, currentRole = null;
+let eqData = [], slData = [], auditData = [];
+let currentEdit = null;
+
+// ── Auth ───────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+  if (!username || !password) return;
+  const btn = document.getElementById('login-btn');
+  btn.textContent = 'Signing in...'; btn.disabled = true;
+  try {
+    const users = await api('users', `?username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&select=username,role`);
+    if (users && users.length > 0) {
+      currentUser = users[0].username;
+      currentRole = users[0].role;
+      sessionStorage.setItem('user', currentUser);
+      sessionStorage.setItem('role', currentRole);
+      document.getElementById('login-screen').style.display = 'none';
+      onLoginSuccess();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+      document.getElementById('login-password').value = '';
+    }
+  } catch(e) { showToast('Connection error'); }
+  finally { btn.textContent = 'Sign In'; btn.disabled = false; }
+}
+
+function onLoginSuccess() {
+  document.getElementById('header-user').textContent = currentUser;
+  document.getElementById('header-user-box').style.display = 'flex';
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'long',year:'numeric'});
+  if (currentRole === 'Admin') document.getElementById('tab-audit-btn').style.display = 'block';
+  loadAllData();
+}
+
+function doLogout() {
+  sessionStorage.clear();
+  currentUser = null; currentRole = null;
+  eqData = []; slData = [];
+  document.getElementById('header-user-box').style.display = 'none';
+  document.getElementById('tab-audit-btn').style.display = 'none';
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  setTimeout(() => document.getElementById('login-username').focus(), 100);
+}
+
+window.addEventListener('load', () => {
+  const u = sessionStorage.getItem('user'), r = sessionStorage.getItem('role');
+  if (u && r) { currentUser = u; currentRole = r; onLoginSuccess(); }
+  else { document.getElementById('login-screen').style.display = 'flex'; setTimeout(() => document.getElementById('login-username').focus(), 100); }
+});
+
+// ── Load Data ──────────────────────────────────────────────
+async function loadAllData() {
+  document.getElementById('dash-results').innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>';
+  try {
+    // Load equipment (active only) - paginate to get all
+    let allEq = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const batch = await api('equipment', `?active=eq.Yes&select=id,unit_number,category,equipment,serial_number,inspection_type,expiry_date,package_id,remarks&order=unit_number&limit=${pageSize}&offset=${from}`);
+      if (!batch || batch.length === 0) break;
+      allEq = allEq.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+    eqData = allEq;
+
+    // Load sling
+    slData = await api('sling_mpi', '?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location&order=equipment_type');
+
+    updateKPIs();
+    populateDropdowns();
+    document.getElementById('dash-results').innerHTML = '<div class="empty">Tap a card above to view equipment</div>';
+  } catch(e) {
+    showToast('Could not load data');
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────
+function getStatus(dateStr) {
+  if (!dateStr) return 'unknown';
+  const d = new Date(dateStr); const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.floor((d - today) / 86400000);
+  if (diff < 0) return 'expired';
+  if (diff <= 30) return 'expiring';
+  if (diff <= 50) return 'watch';
+  return 'valid';
+}
+function statusLabel(s) { return {expired:'Expired',expiring:'Expiring Soon',watch:'Watch',valid:'Valid',unknown:'—'}[s]||s; }
+function statusPill(s) { return `<span class="pill pill-${s}">${statusLabel(s)}</span>`; }
+function dateColor(s) { return {expired:'var(--red)',expiring:'var(--orange)',watch:'#7a5800',valid:'var(--green)'}[s]||'var(--text)'; }
+function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+
+// ── KPIs ───────────────────────────────────────────────────
+function updateKPIs() {
+  let exp=0,expi=0,val=0;
+  const units=new Set(), activeU=new Set();
+  eqData.forEach(r => {
+    const s = getStatus(r.expiry_date);
+    if (s==='expired') exp++;
+    else if (s==='expiring') expi++;
+    else if (s==='valid'||s==='watch') val++;
+    units.add(r.unit_number);
+    activeU.add(r.unit_number);
+  });
+  document.getElementById('eq-expired').textContent = exp;
+  document.getElementById('eq-expiring').textContent = expi;
+  document.getElementById('eq-valid').textContent = val;
+  document.getElementById('eq-active').textContent = activeU.size;
+  document.getElementById('eq-active-sub').textContent = `of ${units.size} units`;
+
+  let sExp=0,sExpi=0,sVal=0;
+  slData.forEach(r => {
+    const s = getStatus(r.expiry_date);
+    if (s==='expired') sExp++;
+    else if (s==='expiring') sExpi++;
+    else if (s==='valid'||s==='watch') sVal++;
+  });
+  document.getElementById('sl-expired').textContent = sExp;
+  document.getElementById('sl-expiring').textContent = sExpi;
+  document.getElementById('sl-valid').textContent = sVal;
+  document.getElementById('sl-total').textContent = slData.length;
+}
+
+// ── Dropdowns ──────────────────────────────────────────────
+function populateDropdowns() {
+  const cats = [...new Set(eqData.map(r=>r.category).filter(Boolean))].sort();
+  const equips = [...new Set(eqData.map(r=>r.equipment).filter(Boolean))].sort();
+  const insps = [...new Set(eqData.map(r=>r.inspection_type).filter(Boolean))].sort();
+  setOpts('f1-category', cats);
+  setOpts('f1-equipment', equips);
+  setOpts('f1-insptype', insps);
+
+  const types = [...new Set(slData.map(r=>r.equipment_type).filter(Boolean))].sort();
+  const sInsps = [...new Set(slData.map(r=>r.inspection_type).filter(Boolean))].sort();
+  const locs = [...new Set(slData.map(r=>r.location).filter(Boolean))].sort();
+  setOpts('f2-type', types);
+  setOpts('f2-insptype', sInsps);
+  setOpts('f2-location', locs);
+
+  const filterSel = document.getElementById('sling-filter');
+  filterSel.innerHTML = '<option value="">All</option>' + types.map(t=>`<option value="${t}">${t}</option>`).join('');
+}
+
+function setOpts(id, arr) {
+  document.getElementById(id).innerHTML = '<option value="">-- Select --</option>' + arr.map(v=>`<option value="${v}">${v}</option>`).join('');
+}
+
+// ── Tab switching ──────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+  if (name==='sling') renderSlings(slData);
+  if (name==='audit') loadAudit();
+}
+
+// ── Dashboard ──────────────────────────────────────────────
+function filterDash(type, source) {
+  const area = document.getElementById('dash-results');
+  if (source === 'sl') {
+    let filtered = type==='all' ? slData : slData.filter(r => {
+      const s=getStatus(r.expiry_date);
+      if (type==='valid') return s==='valid'||s==='watch';
+      return s===type;
+    });
+    const titles = {expired:'Expired — Sling/MPI', expiring:'Expiring Soon — Sling/MPI', valid:'Valid — Sling/MPI', all:'All Sling/MPI'};
+    area.innerHTML = `<div class="section-label">${titles[type]} — ${filtered.length} items</div>` + renderSlingCards(filtered);
+  } else {
+    let filtered;
+    if (type==='active') {
+      filtered = eqData;
+    } else {
+      filtered = eqData.filter(r => {
+        const s=getStatus(r.expiry_date);
+        if (type==='valid') return s==='valid'||s==='watch';
+        return s===type;
+      });
+    }
+    const titles = {expired:'Expired Equipment', expiring:'Expiring Soon (30d)', valid:'Valid Equipment', active:'Active Equipment'};
+    area.innerHTML = `<div class="section-label">${titles[type]} — ${filtered.length} items</div>` + renderEqCards(filtered, {expired:'var(--red)',expiring:'var(--orange)',valid:'var(--green)',active:'var(--navy)'}[type]);
+  }
+}
+
+// ── Unit Search ────────────────────────────────────────────
+async function searchUnit() {
+  const q = document.getElementById('unit-input').value.trim();
+  if (!q) return;
+  const area = document.getElementById('unit-results');
+  area.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const filtered = eqData.filter(r => r.unit_number.toLowerCase().includes(q.toLowerCase()));
+  area.innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--navy)') : '<div class="empty">No results found</div>';
+}
+function clearUnit() { document.getElementById('unit-input').value=''; document.getElementById('unit-results').innerHTML='<div class="empty">Enter a unit number to search</div>'; }
+
+// ── Package Search ─────────────────────────────────────────
+async function searchPackage() {
+  const q = document.getElementById('pkg-input').value.trim().toLowerCase();
+  if (!q) return;
+  const filtered = eqData.filter(r => (r.package_id||'').toLowerCase().includes(q));
+  document.getElementById('pkg-results').innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--blue)') : '<div class="empty">No results found</div>';
+}
+function clearPackage() { document.getElementById('pkg-input').value=''; document.getElementById('pkg-results').innerHTML='<div class="empty">Enter a Package ID to search</div>'; }
+
+// ── Sling/MPI ──────────────────────────────────────────────
+function filterSling() {
+  const typeQ = document.getElementById('sling-filter').value.toLowerCase();
+  const serialQ = document.getElementById('sling-serial').value.trim().toLowerCase();
+  let filtered = slData;
+  if (typeQ) filtered = filtered.filter(r=>(r.equipment_type||'').toLowerCase()===typeQ);
+  if (serialQ) filtered = filtered.filter(r=>(r.serial_number||'').toLowerCase().includes(serialQ));
+  renderSlings(filtered);
+}
+function clearSling() {
+  document.getElementById('sling-filter').value='';
+  document.getElementById('sling-serial').value='';
+  renderSlings(slData);
+}
+function renderSlings(data) {
+  const area = document.getElementById('sling-results');
+  if (!data || !data.length) { area.innerHTML='<div class="empty">No results found</div>'; return; }
+  area.innerHTML = `<div class="section-label">${data.length} items</div>` + renderSlingCards(data);
+}
+
+// ── Render helpers ─────────────────────────────────────────
+function renderEqCards(data, headerColor) {
+  const grouped = {};
+  data.forEach(r => {
+    if (!grouped[r.unit_number]) grouped[r.unit_number] = {category:r.category, items:[]};
+    grouped[r.unit_number].items.push(r);
+  });
+  return Object.entries(grouped).map(([unit, g]) => {
+    const statuses = g.items.map(i=>getStatus(i.expiry_date));
+    let us = 'valid';
+    if (statuses.includes('expired')) us='expired';
+    else if (statuses.includes('expiring')) us='expiring';
+    else if (statuses.includes('watch')) us='watch';
+    const badgeStyle = {expired:'background:#FFEBEB;color:var(--red)',expiring:'background:#FFF3EB;color:var(--orange)',watch:'background:#FFFBEB;color:#7a5800',valid:'background:#EAFAF0;color:var(--green)'}[us];
+    const rows = g.items.map(item => {
+      const s = getStatus(item.expiry_date);
+      return `<div class="equip-row" onclick='openEditEq(${JSON.stringify(item)})'>
+        <div><div class="eq-name">${item.equipment||'—'}</div><div class="eq-sub">${item.inspection_type||''}${item.serial_number?' · '+item.serial_number:''}</div></div>
+        <div class="eq-right"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="result-card"><div class="result-card-header" style="background:${headerColor||'var(--navy)'}">
+      <div><div class="rch-name">${unit}</div><div class="rch-sub">${g.category} · ${g.items.length} item(s)</div></div>
+      <span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>${rows}</div>`;
+  }).join('');
+}
+
+function renderSlingCards(data) {
+  const grouped = {};
+  data.forEach(r => {
+    const t = r.equipment_type||'Unknown';
+    if (!grouped[t]) grouped[t] = [];
+    grouped[t].push(r);
+  });
+  return Object.entries(grouped).map(([type, items]) => {
+    const statuses = items.map(i=>getStatus(i.expiry_date));
+    let us = 'valid';
+    if (statuses.includes('expired')) us='expired';
+    else if (statuses.includes('expiring')) us='expiring';
+    else if (statuses.includes('watch')) us='watch';
+    const badgeStyle = {expired:'background:#FFEBEB;color:var(--red)',expiring:'background:#FFF3EB;color:var(--orange)',watch:'background:#FFFBEB;color:#7a5800',valid:'background:#EAFAF0;color:var(--green)'}[us];
+    const rows = items.map(item => {
+      const s = getStatus(item.expiry_date);
+      return `<div class="equip-row" onclick='openEditSl(${JSON.stringify(item)})'>
+        <div><div class="eq-name">${item.serial_number||'—'}</div>
+        <div class="eq-sub">${item.inspection_type||''}${item.capacity_ton?' · '+item.capacity_ton+'T':''}${item.location?' · 📍 '+item.location:''}</div></div>
+        <div class="eq-right"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="result-card"><div class="result-card-header" style="background:var(--blue)">
+      <div><div class="rch-name">${type}</div><div class="rch-sub">${items.length} item(s)</div></div>
+      <span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>${rows}</div>`;
+  }).join('');
+}
+
+// ── Edit Modal ─────────────────────────────────────────────
+function openEditEq(item) {
+  currentEdit = {...item, _table:'equipment'};
+  document.getElementById('modal-title').textContent = item.equipment||'Equipment';
+  document.getElementById('modal-sub').textContent = `${item.unit_number} — ${item.inspection_type}`;
+  document.getElementById('modal-username').textContent = currentUser;
+  document.getElementById('modal-user').style.display = 'block';
+  document.getElementById('modal-date').value = item.expiry_date||'';
+  document.getElementById('modal-pkg-box').style.display = 'block';
+  document.getElementById('modal-loc-box').style.display = 'none';
+  document.getElementById('modal-pkg').value = item.package_id||'';
+  document.getElementById('edit-modal').classList.add('active');
+}
+function openEditSl(item) {
+  currentEdit = {...item, _table:'sling_mpi'};
+  document.getElementById('modal-title').textContent = `${item.equipment_type} — ${item.serial_number}`;
+  document.getElementById('modal-sub').textContent = item.inspection_type||'';
+  document.getElementById('modal-username').textContent = currentUser;
+  document.getElementById('modal-user').style.display = 'block';
+  document.getElementById('modal-date').value = item.expiry_date||'';
+  document.getElementById('modal-pkg-box').style.display = 'none';
+  document.getElementById('modal-loc-box').style.display = 'block';
+  document.getElementById('modal-loc').value = item.location||'';
+  document.getElementById('edit-modal').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('edit-modal').classList.remove('active');
+  document.getElementById('modal-user').style.display = 'none';
+  document.getElementById('modal-pkg-box').style.display = 'none';
+  document.getElementById('modal-loc-box').style.display = 'none';
+  currentEdit = null;
+}
+document.getElementById('edit-modal').addEventListener('click', e => { if (e.target===document.getElementById('edit-modal')) closeModal(); });
+
+async function saveItem() {
+  const newDate = document.getElementById('modal-date').value;
+  if (!newDate) { showToast('Please select a date'); return; }
+  const btn = document.getElementById('save-btn');
+  btn.textContent='Saving...'; btn.disabled=true;
+  const item = currentEdit;
+  try {
+    let updateData = {expiry_date: newDate};
+    if (item._table==='equipment') {
+      const newPkg = document.getElementById('modal-pkg').value.trim();
+      if (newPkg) updateData.package_id = newPkg;
+      await apiPatch('equipment', `id=eq.${item.id}`, updateData);
+      const idx = eqData.findIndex(r=>r.id===item.id);
+      if (idx>-1) { eqData[idx].expiry_date=newDate; if (updateData.package_id) eqData[idx].package_id=updateData.package_id; }
+      updateKPIs();
+    } else {
+      const newLoc = document.getElementById('modal-loc').value.trim();
+      if (newLoc) updateData.location = newLoc;
+      await apiPatch('sling_mpi', `id=eq.${item.id}`, updateData);
+      const idx = slData.findIndex(r=>r.id===item.id);
+      if (idx>-1) { slData[idx].expiry_date=newDate; if (updateData.location) slData[idx].location=updateData.location; }
+      updateKPIs();
+      renderSlings(slData);
+    }
+    // Log audit
+    await apiPost('audit_log', {username:currentUser, action:'Edit Date', sheet:item._table, details:`${item._table==='equipment'?item.unit_number+' | '+item.equipment:item.serial_number} | ${item.expiry_date} → ${newDate}`});
+    closeModal();
+    showToast('✓ Saved!');
+  } catch(e) { showToast('Error saving'); }
+  finally { btn.textContent='Save'; btn.disabled=false; }
+}
+
+// ── Add Forms ──────────────────────────────────────────────
+function selectAddSheet(type) {
+  document.getElementById('btn-eq').className = 'sheet-btn' + (type==='eq'?' active':'');
+  document.getElementById('btn-sl').className = 'sheet-btn' + (type==='sl'?' active':'');
+  document.getElementById('form-eq').style.display = type==='eq'?'block':'none';
+  document.getElementById('form-sl').style.display = type==='sl'?'block':'none';
+}
+
+async function submitEquipment() {
+  const unit=document.getElementById('f1-unit').value.trim();
+  const category=document.getElementById('f1-category').value;
+  const equipment=document.getElementById('f1-equipment').value;
+  const serial=document.getElementById('f1-serial').value.trim();
+  const insptype=document.getElementById('f1-insptype').value;
+  const expiry=document.getElementById('f1-expiry').value;
+  const pkg=document.getElementById('f1-pkg').value.trim();
+  const active=document.getElementById('f1-active').value;
+  if (!unit||!category||!equipment||!insptype||!expiry) { showToast('Please fill required fields *'); return; }
+  try {
+    await apiPost('equipment', {unit_number:unit,category,equipment,serial_number:serial,inspection_type:insptype,expiry_date:expiry,package_id:pkg,active});
+    await apiPost('audit_log', {username:currentUser, action:'Add Equipment', sheet:'equipment', details:`${unit} | ${equipment} | ${serial}`});
+    showToast('✓ Added!');
+    ['f1-unit','f1-serial','f1-pkg'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f1-expiry').value='';
+    await loadAllData();
+  } catch(e) { showToast('Error adding'); }
+}
+
+async function submitSling() {
+  const type=document.getElementById('f2-type').value;
+  const insptype=document.getElementById('f2-insptype').value;
+  const serial=document.getElementById('f2-serial').value.trim();
+  const expiry=document.getElementById('f2-expiry').value;
+  const capacity=document.getElementById('f2-capacity').value.trim();
+  const leg=document.getElementById('f2-leg').value.trim();
+  const location=document.getElementById('f2-location').value;
+  if (!type||!insptype||!serial||!expiry) { showToast('Please fill required fields *'); return; }
+  try {
+    await apiPost('sling_mpi', {equipment_type:type,inspection_type:insptype,serial_number:serial,expiry_date:expiry,status:'Valid',capacity_ton:capacity,leg,location});
+    await apiPost('audit_log', {username:currentUser, action:'Add Sling/MPI', sheet:'sling_mpi', details:`${type} | ${serial}`});
+    showToast('✓ Added!');
+    ['f2-serial','f2-capacity','f2-leg'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f2-expiry').value='';
+    slData = await api('sling_mpi','?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location&order=equipment_type');
+    updateKPIs();
+    renderSlings(slData);
+  } catch(e) { showToast('Error adding'); }
+}
+
+// ── Audit Log ──────────────────────────────────────────────
+let auditSheetFilter = '';
+
+async function loadAudit() {
+  document.getElementById('audit-results').innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>';
+  auditData = await api('audit_log', '?select=*&order=timestamp.desc&limit=200');
+  renderAudit(auditData);
+}
+
+function renderAudit(rows) {
+  if (!rows||!rows.length) { document.getElementById('audit-results').innerHTML='<div class="empty">No activity yet</div>'; return; }
+  let html = `<div class="section-label">${rows.length} records</div><div class="result-card">`;
+  rows.forEach(r => {
+    const color = r.action==='Edit Date'?'var(--orange)':(r.action||'').includes('Add')?'var(--green)':'var(--navy)';
+    const ts = r.timestamp ? new Date(r.timestamp).toLocaleString('en-GB') : '—';
+    html += `<div class="audit-row">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:600;color:${color};margin-bottom:2px;">${r.action||'—'}</div>
+          <div style="font-size:11px;color:var(--text);margin-bottom:2px;">${r.details||'—'}</div>
+          <div style="font-size:10px;color:var(--muted);">Sheet: ${r.sheet||'—'}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;font-weight:600;color:var(--navy);">${r.username||'—'}</div>
+          <div style="font-size:10px;color:var(--muted);">${ts}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('audit-results').innerHTML = html;
+}
+
+function filterAudit() {
+  const q = document.getElementById('audit-search').value.trim().toLowerCase();
+  let filtered = auditData;
+  if (auditSheetFilter) filtered = filtered.filter(r=>(r.sheet||'')===auditSheetFilter);
+  if (q) filtered = filtered.filter(r=>(r.details||'').toLowerCase().includes(q)||(r.username||'').toLowerCase().includes(q));
+  renderAudit(filtered);
+}
+
+function clearAudit() {
+  document.getElementById('audit-search').value='';
+  auditSheetFilter='';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('af-all').classList.add('active');
+  renderAudit(auditData);
+}
+
+function filterAuditBySheet(sheet) {
+  auditSheetFilter = sheet;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  const map = {'':'af-all','equipment':'af-eq','sling_mpi':'af-sl'};
+  document.getElementById(map[sheet]).classList.add('active');
+  filterAudit();
+}
+
+// ── Toast ──────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
