@@ -29,6 +29,12 @@
 
   .kpi-section-label { padding: 12px 12px 4px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
   .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px 8px; }
+  .kpi-card.active-card { box-shadow: 0 0 0 2px var(--navy); }
+  .kpi-card.active-card.kpi-expired { box-shadow: 0 0 0 2px var(--red); }
+  .kpi-card.active-card.kpi-expiring { box-shadow: 0 0 0 2px var(--orange); }
+  .kpi-card.active-card.kpi-valid { box-shadow: 0 0 0 2px var(--green); }
+  .accordion-content { display: none; padding: 0 12px 8px; }
+  .accordion-content.open { display: block; }
   .kpi-card { background: #fff; border-radius: 12px; padding: 12px; border-left: 3px solid transparent; cursor: pointer; }
   .kpi-card:active { opacity: 0.85; }
   .kpi-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
@@ -175,9 +181,9 @@
   <!-- Equipment Sheet Section -->
   <div class="kpi-section-label">Equipment Sheet</div>
   <div class="kpi-grid">
-    <div class="kpi-card kpi-expired" onclick="filterDash('expired','eq')"><div class="kpi-label">Expired</div><div class="kpi-value" id="eq-expired">—</div><div class="kpi-tap">tap to view ›</div></div>
-    <div class="kpi-card kpi-expiring" onclick="filterDash('expiring','eq')"><div class="kpi-label">Expiring (30d)</div><div class="kpi-value" id="eq-expiring">—</div><div class="kpi-tap">tap to view ›</div></div>
-    <div class="kpi-card kpi-valid" onclick="filterDash('valid','eq')"><div class="kpi-label">Valid</div><div class="kpi-value" id="eq-valid">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-expired" onclick="filterDash('expired','eq')"><div class="kpi-label">Expired</div><div class="kpi-value" id="eq-expired">—</div><div class="kpi-tap">tap to expand ›</div></div>
+    <div class="kpi-card kpi-expiring" onclick="filterDash('expiring','eq')"><div class="kpi-label">Expiring (30d)</div><div class="kpi-value" id="eq-expiring">—</div><div class="kpi-tap">tap to expand ›</div></div>
+    <div class="kpi-card kpi-valid" onclick="filterDash('valid','eq')"><div class="kpi-label">Valid</div><div class="kpi-value" id="eq-valid">—</div><div class="kpi-tap">tap to expand ›</div></div>
     <div class="kpi-card kpi-active" onclick="filterDash('active','eq')"><div class="kpi-label">Active Units</div><div class="kpi-value" id="eq-active">—</div><div class="kpi-tap" id="eq-active-sub">of — units</div></div>
   </div>
 
@@ -205,10 +211,10 @@
   <!-- Sling/MPI Section -->
   <div class="kpi-section-label">Sling / MPI</div>
   <div class="kpi-grid">
-    <div class="kpi-card kpi-expired" onclick="filterDash('expired','sl')"><div class="kpi-label">Expired</div><div class="kpi-value" id="sl-expired">—</div><div class="kpi-tap">tap to view ›</div></div>
-    <div class="kpi-card kpi-expiring" onclick="filterDash('expiring','sl')"><div class="kpi-label">Expiring (30d)</div><div class="kpi-value" id="sl-expiring">—</div><div class="kpi-tap">tap to view ›</div></div>
-    <div class="kpi-card kpi-valid" onclick="filterDash('valid','sl')"><div class="kpi-label">Valid</div><div class="kpi-value" id="sl-valid">—</div><div class="kpi-tap">tap to view ›</div></div>
-    <div class="kpi-card kpi-active" onclick="filterDash('all','sl')"><div class="kpi-label">Total Items</div><div class="kpi-value" id="sl-total">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-expired" onclick="filterDash('expired','sl')"><div class="kpi-label">Expired</div><div class="kpi-value" id="sl-expired">—</div><div class="kpi-tap">tap to expand ›</div></div>
+    <div class="kpi-card kpi-expiring" onclick="filterDash('expiring','sl')"><div class="kpi-label">Expiring (30d)</div><div class="kpi-value" id="sl-expiring">—</div><div class="kpi-tap">tap to expand ›</div></div>
+    <div class="kpi-card kpi-valid" onclick="filterDash('valid','sl')"><div class="kpi-label">Valid</div><div class="kpi-value" id="sl-valid">—</div><div class="kpi-tap">tap to expand ›</div></div>
+    <div class="kpi-card kpi-active" onclick="filterDash('all','sl')"><div class="kpi-label">Total Items</div><div class="kpi-value" id="sl-total">—</div><div class="kpi-tap">tap to expand ›</div></div>
   </div>
 
   <!-- Sling Charts -->
@@ -232,7 +238,9 @@
     </div>
   </div>
 
-  <div class="results-area" id="dash-results"></div>
+  <div class="accordion-content" id="eq-accordion"></div>
+  <div class="accordion-content" id="sl-accordion"></div>
+  <div class="results-area" id="dash-results" style="display:none;"></div>
 </div>
 
 <!-- UNIT SEARCH -->
@@ -901,17 +909,43 @@ function switchTab(name) {
 }
 
 // ── Dashboard ──────────────────────────────────────────────
+let activeEqCard = null;
+let activeSlCard = null;
+
 function filterDash(type, source) {
-  const area = document.getElementById('dash-results');
   if (source === 'sl') {
+    const accordion = document.getElementById('sl-accordion');
+    // Toggle
+    if (activeSlCard === type) {
+      accordion.classList.remove('open');
+      accordion.innerHTML = '';
+      activeSlCard = null;
+      document.querySelectorAll('.kpi-card.kpi-expired,.kpi-card.kpi-expiring,.kpi-card.kpi-valid,.kpi-card.kpi-active')
+        .forEach(c => c.classList.remove('active-card'));
+      return;
+    }
+    activeSlCard = type;
     let filtered = type==='all' ? slData : slData.filter(r => {
       const s=getStatus(r.expiry_date);
       if (type==='valid') return s==='valid'||s==='watch';
       return s===type;
     });
     const titles = {expired:'Expired — Sling/MPI', expiring:'Expiring Soon — Sling/MPI', valid:'Valid — Sling/MPI', all:'All Sling/MPI'};
-    area.innerHTML = `<div class="section-label">${titles[type]} — ${filtered.length} items</div>` + renderSlingCards(filtered);
+    accordion.innerHTML = `<div class="section-label">${titles[type]} — ${filtered.length} items</div>` + renderSlingCards(filtered);
+    accordion.classList.add('open');
+    accordion.scrollIntoView({behavior:'smooth', block:'nearest'});
+
   } else {
+    const accordion = document.getElementById('eq-accordion');
+    // Toggle
+    if (activeEqCard === type) {
+      accordion.classList.remove('open');
+      accordion.innerHTML = '';
+      activeEqCard = null;
+      document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('active-card'));
+      return;
+    }
+    activeEqCard = type;
     let filtered;
     if (type==='active') {
       filtered = eqData;
@@ -923,7 +957,10 @@ function filterDash(type, source) {
       });
     }
     const titles = {expired:'Expired Equipment', expiring:'Expiring Soon (30d)', valid:'Valid Equipment', active:'Active Equipment'};
-    area.innerHTML = `<div class="section-label">${titles[type]} — ${filtered.length} items</div>` + renderEqCards(filtered, {expired:'var(--red)',expiring:'var(--orange)',valid:'var(--green)',active:'var(--navy)'}[type]);
+    const colors = {expired:'var(--red)',expiring:'var(--orange)',valid:'var(--green)',active:'var(--navy)'};
+    accordion.innerHTML = `<div class="section-label">${titles[type]} — ${filtered.length} items</div>` + renderEqCards(filtered, colors[type]);
+    accordion.classList.add('open');
+    accordion.scrollIntoView({behavior:'smooth', block:'nearest'});
   }
 }
 
