@@ -819,7 +819,7 @@ function renderAudit(rows) {
   let html = `<div class="section-label">${rows.length} records</div><div class="result-card">`;
   rows.forEach(r => {
     const color = r.action==='Edit Date'?'var(--orange)':(r.action||'').includes('Add')?'var(--green)':'var(--navy)';
-    const ts = r.timestamp ? new Date(r.timestamp).toLocaleString('en-GB') : '—';
+    const ts = r.timestamp ? new Date(r.timestamp).toLocaleString('en-GB', {timeZone:'Asia/Riyadh'}) : '—';
     html += `<div class="audit-row">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
         <div style="flex:1;">
