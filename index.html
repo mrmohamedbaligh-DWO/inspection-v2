@@ -171,6 +171,8 @@
 
 <!-- DASHBOARD -->
 <div class="tab-content active" id="tab-dashboard">
+
+  <!-- Equipment Sheet Section -->
   <div class="kpi-section-label">Equipment Sheet</div>
   <div class="kpi-grid">
     <div class="kpi-card kpi-expired" onclick="filterDash('expired','eq')"><div class="kpi-label">Expired</div><div class="kpi-value" id="eq-expired">—</div><div class="kpi-tap">tap to view ›</div></div>
@@ -178,18 +180,10 @@
     <div class="kpi-card kpi-valid" onclick="filterDash('valid','eq')"><div class="kpi-label">Valid</div><div class="kpi-value" id="eq-valid">—</div><div class="kpi-tap">tap to view ›</div></div>
     <div class="kpi-card kpi-active" onclick="filterDash('active','eq')"><div class="kpi-label">Active Units</div><div class="kpi-value" id="eq-active">—</div><div class="kpi-tap" id="eq-active-sub">of — units</div></div>
   </div>
-  <div class="kpi-section-label">Sling / MPI</div>
-  <div class="kpi-grid">
-    <div class="kpi-card kpi-expired" onclick="filterDash('expired','sl')"><div class="kpi-label">Expired</div><div class="kpi-value" id="sl-expired">—</div><div class="kpi-tap">tap to view ›</div></div>
-    <div class="kpi-card kpi-expiring" onclick="filterDash('expiring','sl')"><div class="kpi-label">Expiring (30d)</div><div class="kpi-value" id="sl-expiring">—</div><div class="kpi-tap">tap to view ›</div></div>
-    <div class="kpi-card kpi-valid" onclick="filterDash('valid','sl')"><div class="kpi-label">Valid</div><div class="kpi-value" id="sl-valid">—</div><div class="kpi-tap">tap to view ›</div></div>
-    <div class="kpi-card kpi-active" onclick="filterDash('all','sl')"><div class="kpi-label">Total Items</div><div class="kpi-value" id="sl-total">—</div><div class="kpi-tap">tap to view ›</div></div>
-  </div>
-  <!-- Charts Section -->
-  <div style="padding:8px 12px 0;" id="charts-section" style="display:none;">
 
-    <!-- Equipment Donut Chart -->
-    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid #EBEBEB;">
+  <!-- Equipment Charts -->
+  <div style="padding:0 12px 8px;" id="eq-charts-section" style="display:none;">
+    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #EBEBEB;">
       <div style="font-size:12px;font-weight:600;color:#1F3864;margin-bottom:10px;">Equipment Status Overview</div>
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="position:relative;width:90px;height:90px;flex-shrink:0;">
@@ -202,13 +196,40 @@
         <div style="flex:1;" id="donut-legend"></div>
       </div>
     </div>
-
-    <!-- Expired by Package Bar Chart -->
-    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid #EBEBEB;">
+    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #EBEBEB;">
       <div style="font-size:12px;font-weight:600;color:#1F3864;margin-bottom:10px;">Expired by Package ID</div>
       <div id="pkg-bar-chart"></div>
     </div>
+  </div>
 
+  <!-- Sling/MPI Section -->
+  <div class="kpi-section-label">Sling / MPI</div>
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-expired" onclick="filterDash('expired','sl')"><div class="kpi-label">Expired</div><div class="kpi-value" id="sl-expired">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-expiring" onclick="filterDash('expiring','sl')"><div class="kpi-label">Expiring (30d)</div><div class="kpi-value" id="sl-expiring">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-valid" onclick="filterDash('valid','sl')"><div class="kpi-label">Valid</div><div class="kpi-value" id="sl-valid">—</div><div class="kpi-tap">tap to view ›</div></div>
+    <div class="kpi-card kpi-active" onclick="filterDash('all','sl')"><div class="kpi-label">Total Items</div><div class="kpi-value" id="sl-total">—</div><div class="kpi-tap">tap to view ›</div></div>
+  </div>
+
+  <!-- Sling Charts -->
+  <div style="padding:0 12px 8px;" id="sl-charts-section" style="display:none;">
+    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #EBEBEB;">
+      <div style="font-size:12px;font-weight:600;color:#2E75B6;margin-bottom:10px;">Sling/MPI Status Overview</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="position:relative;width:90px;height:90px;flex-shrink:0;">
+          <canvas id="sl-donut-chart" width="90" height="90"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+            <div id="sl-donut-total" style="font-size:14px;font-weight:700;color:#2E75B6;line-height:1;">—</div>
+            <div style="font-size:9px;color:#888;">total</div>
+          </div>
+        </div>
+        <div style="flex:1;" id="sl-donut-legend"></div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #EBEBEB;">
+      <div style="font-size:12px;font-weight:600;color:#2E75B6;margin-bottom:10px;">Expired by Location</div>
+      <div id="sl-bar-chart"></div>
+    </div>
   </div>
 
   <div class="results-area" id="dash-results"></div>
@@ -661,7 +682,7 @@ let donutChartInstance = null;
 
 function renderCharts() {
   if (!eqData.length) return;
-  document.getElementById('charts-section').style.display = 'block';
+  document.getElementById('eq-charts-section').style.display = 'block';
 
   // ── Donut Chart ──────────────────────────────────────────
   let expired=0, expiring=0, valid=0;
@@ -738,6 +759,78 @@ function renderCharts() {
           <div style="height:100%;background:#C00000;border-radius:4px;width:${Math.round(count/maxVal*100)}%;transition:width 0.5s;"></div>
         </div>
         <div style="font-size:10px;font-weight:600;color:#C00000;width:22px;">${count}</div>
+      </div>`).join('');
+  }
+
+  // ── Sling/MPI Charts ─────────────────────────────────────
+  if (!slData.length) return;
+  document.getElementById('sl-charts-section').style.display = 'block';
+
+  let slExp=0, slExpi=0, slVal=0;
+  slData.forEach(r => {
+    const s = getStatus(r.expiry_date);
+    if (s==='expired') slExp++;
+    else if (s==='expiring') slExpi++;
+    else if (s==='valid'||s==='watch') slVal++;
+  });
+  const slTotal = slExp + slExpi + slVal;
+  document.getElementById('sl-donut-total').textContent = slTotal;
+
+  document.getElementById('sl-donut-legend').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
+        <div style="width:10px;height:10px;border-radius:2px;background:#00B050;flex-shrink:0;"></div>Valid
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#00B050;">${slTotal?Math.round(slVal/slTotal*100):0}%</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
+        <div style="width:10px;height:10px;border-radius:2px;background:#C00000;flex-shrink:0;"></div>Expired
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#C00000;">${slTotal?Math.round(slExp/slTotal*100):0}%</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
+        <div style="width:10px;height:10px;border-radius:2px;background:#ED7D31;flex-shrink:0;"></div>Expiring
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#ED7D31;">${slTotal?Math.round(slExpi/slTotal*100):0}%</span>
+    </div>`;
+
+  const slCtx = document.getElementById('sl-donut-chart').getContext('2d');
+  if (window.slDonutInstance) window.slDonutInstance.destroy();
+  window.slDonutInstance = new Chart(slCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Valid', 'Expired', 'Expiring Soon'],
+      datasets: [{
+        data: [slVal, slExp, slExpi],
+        backgroundColor: ['#00B050', '#C00000', '#ED7D31'],
+        borderWidth: 0, hoverOffset: 4
+      }]
+    },
+    options: { responsive: false, cutout: '65%', plugins: { legend: { display: false } } }
+  });
+
+  // Expired by Location bar
+  const locCount = {};
+  slData.forEach(r => {
+    if (getStatus(r.expiry_date) === 'expired') {
+      const loc = r.location || 'Unknown';
+      locCount[loc] = (locCount[loc] || 0) + 1;
+    }
+  });
+  const slSorted = Object.entries(locCount).sort((a,b)=>b[1]-a[1]);
+  const slMax = slSorted.length ? slSorted[0][1] : 1;
+  if (slSorted.length === 0) {
+    document.getElementById('sl-bar-chart').innerHTML = '<div style="text-align:center;font-size:12px;color:#00B050;padding:10px;">✅ No expired Sling/MPI!</div>';
+  } else {
+    document.getElementById('sl-bar-chart').innerHTML = slSorted.map(([loc, count]) => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="font-size:10px;color:#888;width:55px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${loc}</div>
+        <div style="flex:1;height:16px;background:#f5f5f5;border-radius:4px;overflow:hidden;">
+          <div style="height:100%;background:#2E75B6;border-radius:4px;width:${Math.round(count/slMax*100)}%;"></div>
+        </div>
+        <div style="font-size:10px;font-weight:600;color:#2E75B6;width:22px;">${count}</div>
       </div>`).join('');
   }
 }
