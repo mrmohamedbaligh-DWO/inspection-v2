@@ -327,6 +327,21 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Bulk Package ID Modal -->
+<div class="modal-overlay" id="bulk-pkg-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="bulk-pkg-unit">Unit Number</div>
+    <div class="modal-sub">Change Package ID for all items in this unit</div>
+    <div class="modal-label">New Package ID</div>
+    <input class="modal-input" type="text" id="bulk-pkg-input" placeholder="e.g. SA, CTU-726, YARD" />
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeBulkPkg()">Cancel</button>
+      <button class="btn-save" id="bulk-pkg-save-btn" onclick="saveBulkPkg()">Update All</button>
+    </div>
+  </div>
+</div>
+
 <!-- Report Modal -->
 <div class="report-modal" id="report-modal">
   <div class="report-box">
@@ -335,9 +350,10 @@
     <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Choose what to export as Excel</div>
 
     <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Sheet</div>
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
       <button class="report-option" id="ropt-eq" onclick="selectReport('sheet','equipment')" style="flex:1;text-align:center;">Equipment</button>
       <button class="report-option" id="ropt-sl" onclick="selectReport('sheet','sling_mpi')" style="flex:1;text-align:center;">Sling / MPI</button>
+      <button class="report-option" id="ropt-both" onclick="selectReport('sheet','both')" style="flex:1;text-align:center;">Both</button>
     </div>
 
     <div id="report-filter-section" style="display:none;">
@@ -653,9 +669,11 @@ function renderEqCards(data, headerColor) {
         <div class="eq-right" style="display:flex;align-items:center;gap:6px;"><div style="text-align:right;"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>${delBtn}</div>
       </div>`;
     }).join('');
+    const pkgBtn = currentRole==='Admin' ? `<button onclick="event.stopPropagation();openBulkPkg('${unit}')" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:6px;">📦 Pkg</button>` : '';
     return `<div class="result-card"><div class="result-card-header" style="background:${headerColor||'var(--navy)'}">
       <div><div class="rch-name">${unit}</div><div class="rch-sub">${g.category} · ${g.items.length} item(s)</div></div>
-      <span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>${rows}</div>`;
+      <div style="display:flex;align-items:center;">${pkgBtn}<span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>
+      </div>${rows}</div>`;
   }).join('');
 }
 
@@ -869,6 +887,73 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'), 2500);
 }
 
+// ── Bulk Package ID Change ─────────────────────────────────
+let bulkPkgUnit = '';
+
+function openBulkPkg(unit) {
+  bulkPkgUnit = unit;
+  document.getElementById('bulk-pkg-unit').textContent = unit;
+  document.getElementById('bulk-pkg-input').value = '';
+  document.getElementById('bulk-pkg-modal').classList.add('active');
+  setTimeout(() => document.getElementById('bulk-pkg-input').focus(), 300);
+}
+
+function closeBulkPkg() {
+  document.getElementById('bulk-pkg-modal').classList.remove('active');
+  bulkPkgUnit = '';
+}
+
+document.getElementById('bulk-pkg-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('bulk-pkg-modal')) closeBulkPkg();
+});
+
+async function saveBulkPkg() {
+  const newPkg = document.getElementById('bulk-pkg-input').value.trim();
+  if (!newPkg) { showToast('Please enter a Package ID'); return; }
+  
+  const btn = document.getElementById('bulk-pkg-save-btn');
+  btn.textContent = 'Updating...'; btn.disabled = true;
+  
+  try {
+    // Update all items with this unit number in Supabase
+    await fetch(`${SUPABASE_URL}/rest/v1/equipment?unit_number=eq.${encodeURIComponent(bulkPkgUnit)}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({package_id: newPkg})
+    });
+    
+    // Update local data
+    const count = eqData.filter(r => r.unit_number === bulkPkgUnit).length;
+    eqData.forEach(r => { if (r.unit_number === bulkPkgUnit) r.package_id = newPkg; });
+    
+    // Log audit
+    await apiPost('audit_log', {
+      username: currentUser,
+      action: 'Bulk Update Package ID',
+      sheet: 'equipment',
+      details: `${bulkPkgUnit} | ${count} items → Package ID: ${newPkg}`
+    });
+    
+    closeBulkPkg();
+    showToast(`✓ Updated ${count} items to Package: ${newPkg}`);
+    
+    // Refresh current view
+    const activeTab = document.querySelector('.tab.active').getAttribute('onclick');
+    if (activeTab.includes('unit')) searchUnit();
+    else if (activeTab.includes('package')) searchPackage();
+    
+  } catch(e) {
+    showToast('Error updating');
+  } finally {
+    btn.textContent = 'Update All'; btn.disabled = false;
+  }
+}
+
 // ── Delete Item ────────────────────────────────────────────
 async function deleteItem(table, id, name) {
   if (!confirm(`Delete "${name}"?\nThis cannot be undone.`)) return;
@@ -915,20 +1000,27 @@ function selectReport(type, value) {
   if (type==='sheet') {
     reportSheet=value; reportStatus='';
     document.querySelectorAll('[id^="ropt-"]').forEach(b=>b.classList.remove('selected'));
-    document.getElementById(`ropt-${value==='equipment'?'eq':'sl'}`).classList.add('selected');
+    const btnId = value==='equipment' ? 'ropt-eq' : value==='sling_mpi' ? 'ropt-sl' : 'ropt-both';
+    document.getElementById(btnId).classList.add('selected');
     document.getElementById('report-filter-section').style.display='block';
     document.getElementById('report-sub-section').style.display='none';
-    // populate sub filter
+
     const sel = document.getElementById('report-sub-select');
     const label = document.getElementById('report-sub-label');
+
     if (value==='equipment') {
       label.textContent='Package ID';
       const pkgs = [...new Set(eqData.map(r=>r.package_id).filter(Boolean))].sort();
       sel.innerHTML='<option value="">All Packages</option>'+pkgs.map(p=>`<option value="${p}">${p}</option>`).join('');
+    } else if (value==='sling_mpi') {
+      label.textContent='Location';
+      const locs=[...new Set(slData.map(r=>r.location).filter(Boolean))].sort();
+      sel.innerHTML='<option value="">All Locations</option>'+locs.map(l=>`<option value="${l}">${l}</option>`).join('');
     } else {
-      label.textContent='Equipment Type';
-      const types=[...new Set(slData.map(r=>r.equipment_type).filter(Boolean))].sort();
-      sel.innerHTML='<option value="">All Types</option>'+types.map(t=>`<option value="${t}">${t}</option>`).join('');
+      // Both — show Package ID for equipment filter
+      label.textContent='Package ID (Equipment) / Location (Sling)';
+      const pkgs = [...new Set(eqData.map(r=>r.package_id).filter(Boolean))].sort();
+      sel.innerHTML='<option value="">All</option>'+pkgs.map(p=>`<option value="${p}">${p}</option>`).join('');
     }
   } else {
     reportStatus=value;
@@ -945,22 +1037,40 @@ function generateReport() {
 
   let data, headers, rows;
 
-  if (reportSheet==='equipment') {
-    data = eqData.filter(r => {
+  const filterEq = (r) => {
+    const s = getStatus(r.expiry_date);
+    const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
+    const subMatch = subVal ? (r.package_id||'')=== subVal : true;
+    return statusMatch && subMatch;
+  };
+  const filterSl = (r) => {
+    const s = getStatus(r.expiry_date);
+    const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
+    const subMatch = subVal ? (r.location||'')=== subVal : true;
+    return statusMatch && subMatch;
+  };
+
+  if (reportSheet==='both') {
+    // Combined report - Equipment + Sling/MPI
+    const eqFiltered = eqData.filter(filterEq);
+    const slFiltered = slData.filter(r => {
       const s = getStatus(r.expiry_date);
-      const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
-      const subMatch = subVal ? (r.package_id||'')=== subVal : true;
-      return statusMatch && subMatch;
+      return reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
     });
+
+    const eqRows = eqFiltered.map(r => ['Equipment', r.unit_number, r.category, r.equipment, r.serial_number, r.inspection_type, r.expiry_date||'', r.package_id||'', '', '', statusLabel(getStatus(r.expiry_date))]);
+    const slRows = slFiltered.map(r => ['Sling/MPI', '', '', r.equipment_type, r.serial_number, r.inspection_type, r.expiry_date||'', '', r.capacity_ton||'', r.location||'', statusLabel(getStatus(r.expiry_date))]);
+
+    headers = ['Sheet','Unit Number','Category','Equipment/Type','Serial Number','Inspection Type','Expiry Date','Package ID','Capacity (Ton)','Location','Status'];
+    rows = [...eqRows, ...slRows];
+    data = [...eqFiltered, ...slFiltered];
+
+  } else if (reportSheet==='equipment') {
+    data = eqData.filter(filterEq);
     headers = ['Unit Number','Category','Equipment','Serial Number','Inspection Type','Expiry Date','Package ID','Status'];
     rows = data.map(r => [r.unit_number,r.category,r.equipment,r.serial_number,r.inspection_type,r.expiry_date||'',r.package_id||'',statusLabel(getStatus(r.expiry_date))]);
   } else {
-    data = slData.filter(r => {
-      const s = getStatus(r.expiry_date);
-      const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
-      const subMatch = subVal ? (r.equipment_type||'')=== subVal : true;
-      return statusMatch && subMatch;
-    });
+    data = slData.filter(filterSl);
     headers = ['Equipment Type','Inspection Type','Serial Number','Expiry Date','Capacity (Ton)','LEG','Location','Status'];
     rows = data.map(r => [r.equipment_type,r.inspection_type,r.serial_number,r.expiry_date||'',r.capacity_ton||'',r.leg||'',r.location||'',statusLabel(getStatus(r.expiry_date))]);
   }
