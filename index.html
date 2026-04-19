@@ -186,6 +186,13 @@
     <div class="kpi-card kpi-valid" onclick="filterDash('valid','eq')"><div class="kpi-label">Valid</div><div class="kpi-value" id="eq-valid">—</div><div class="kpi-tap">tap to expand ›</div></div>
     <div class="kpi-card kpi-active" onclick="filterDash('active','eq')"><div class="kpi-label">Active Units</div><div class="kpi-value" id="eq-active">—</div><div class="kpi-tap" id="eq-active-sub">of — units</div></div>
   </div>
+  <div id="inactive-kpi-section" style="display:none;padding:0 12px 8px;">
+    <div class="kpi-card" onclick="filterDash('inactive','eq')" style="border-left:3px solid #888;cursor:pointer;">
+      <div class="kpi-label">Inactive Units</div>
+      <div class="kpi-value" id="eq-inactive" style="color:#888;">—</div>
+      <div class="kpi-tap">tap to expand ›</div>
+    </div>
+  </div>
 
   <!-- Equipment Charts -->
   <div style="padding:0 12px 8px;" id="eq-charts-section" style="display:none;">
@@ -460,9 +467,15 @@
 
       <div id="report-sub-section" style="display:none;">
         <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;" id="report-sub-label">Filter</div>
-        <select id="report-sub-select" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:14px;">
+        <select id="report-sub-select" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;">
           <option value="">All</option>
         </select>
+        <div id="report-insp-section" style="display:none;">
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Inspection Type</div>
+          <select id="report-insp-select" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:14px;">
+            <option value="">All Types</option>
+          </select>
+        </div>
       </div>
 
       <button onclick="generateReport()" style="width:100%;background:var(--green);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">⬇️ Download Excel</button>
@@ -616,6 +629,7 @@ function onLoginSuccess() {
     document.getElementById('tab-audit-btn').style.display = 'block';
     document.getElementById('report-btn').style.display = 'block';
     document.getElementById('tab-users-btn').style.display = 'block';
+    document.getElementById('inactive-kpi-section').style.display = 'block';
   }
   loadAllData();
 }
@@ -628,6 +642,7 @@ function doLogout() {
   document.getElementById('tab-audit-btn').style.display = 'none';
   document.getElementById('report-btn').style.display = 'none';
   document.getElementById('tab-users-btn').style.display = 'none';
+  document.getElementById('inactive-kpi-section').style.display = 'none';
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').style.display = 'none';
@@ -650,7 +665,7 @@ async function loadAllData() {
     let from = 0;
     const pageSize = 1000;
     while (true) {
-      const batch = await api('equipment', `?active=eq.Yes&select=id,unit_number,category,equipment,serial_number,inspection_type,expiry_date,package_id,remarks&order=unit_number&limit=${pageSize}&offset=${from}`);
+      const batch = await api('equipment', `?select=id,unit_number,category,equipment,serial_number,inspection_type,expiry_date,package_id,remarks,active&order=unit_number&limit=${pageSize}&offset=${from}`);
       if (!batch || batch.length === 0) break;
       allEq = allEq.concat(batch);
       if (batch.length < pageSize) break;
@@ -948,16 +963,19 @@ function filterDash(type, source) {
     activeEqCard = type;
     let filtered;
     if (type==='active') {
-      filtered = eqData;
+      filtered = eqData.filter(r => (r.active||'').toLowerCase()==='yes');
+    } else if (type==='inactive') {
+      filtered = eqData.filter(r => (r.active||'').toLowerCase()!=='yes');
     } else {
       filtered = eqData.filter(r => {
+        if ((r.active||'').toLowerCase()!=='yes') return false;
         const s=getStatus(r.expiry_date);
         if (type==='valid') return s==='valid'||s==='watch';
         return s===type;
       });
     }
-    const titles = {expired:'Expired Equipment', expiring:'Expiring Soon (30d)', valid:'Valid Equipment', active:'Active Equipment'};
-    const colors = {expired:'var(--red)',expiring:'var(--orange)',valid:'var(--green)',active:'var(--navy)'};
+    const titles = {expired:'Expired Equipment', expiring:'Expiring Soon (30d)', valid:'Valid Equipment', active:'Active Equipment', inactive:'Inactive Units'};
+    const colors = {expired:'var(--red)',expiring:'var(--orange)',valid:'var(--green)',active:'var(--navy)',inactive:'#595959'};
     accordion.innerHTML = `<div class="section-label">${titles[type]} — ${filtered.length} items</div>` + renderEqCards(filtered, colors[type]);
     accordion.classList.add('open');
     accordion.scrollIntoView({behavior:'smooth', block:'nearest'});
@@ -1026,10 +1044,12 @@ function renderEqCards(data, headerColor) {
         <div class="eq-right" style="display:flex;align-items:center;gap:6px;"><div style="text-align:right;"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>${delBtn}</div>
       </div>`;
     }).join('');
-    const pkgBtn = currentRole==='Admin' ? `<button onclick="event.stopPropagation();openBulkPkg('${unit}')" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:6px;">📦 Pkg</button>` : '';
+    const isUnitActive = g.items.some(i => (i.active||'').toLowerCase()==='yes');
+    const pkgBtn = currentRole==='Admin' ? `<button onclick="event.stopPropagation();openBulkPkg('${unit}')" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:4px;">📦 Pkg</button>` : '';
+    const activeBtn = currentRole==='Admin' ? `<button onclick="event.stopPropagation();toggleUnitActive('${unit}',${isUnitActive})" style="background:${isUnitActive?'rgba(0,176,80,0.3)':'rgba(200,0,0,0.3)'};color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:6px;">${isUnitActive?'✅ Active':'❌ Inactive'}</button>` : '';
     return `<div class="result-card"><div class="result-card-header" style="background:${headerColor||'var(--navy)'}">
       <div><div class="rch-name">${unit}</div><div class="rch-sub">${g.category} · ${g.items.length} item(s)</div></div>
-      <div style="display:flex;align-items:center;">${pkgBtn}<span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>
+      <div style="display:flex;align-items:center;">${pkgBtn}${activeBtn}<span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>
       </div>${rows}</div>`;
   }).join('');
 }
@@ -1341,6 +1361,45 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'), 2500);
 }
 
+// ── Toggle Unit Active/Inactive ───────────────────────────
+async function toggleUnitActive(unit, currentlyActive) {
+  const newStatus = currentlyActive ? 'No' : 'Yes';
+  const action = currentlyActive ? 'Deactivate' : 'Activate';
+  if (!confirm(`${action} all equipment in unit "${unit}"?`)) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/equipment?unit_number=eq.${encodeURIComponent(unit)}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({active: newStatus})
+    });
+    // Update local data
+    eqData.forEach(r => { if (r.unit_number===unit) r.active = newStatus; });
+    await apiPost('audit_log', {
+      username: currentUser,
+      action: action + ' Unit',
+      sheet: 'equipment',
+      details: `${unit} | All items set to Active: ${newStatus}`
+    });
+    updateKPIs();
+    renderCharts();
+    // Refresh current view
+    const activeTab = document.querySelector('.tab.active').getAttribute('onclick');
+    if (activeTab.includes('unit')) searchUnit();
+    else if (activeTab.includes('package')) searchPackage();
+    else {
+      document.getElementById('eq-accordion').classList.remove('open');
+      document.getElementById('eq-accordion').innerHTML = '';
+      activeEqCard = null;
+    }
+    showToast(`✓ Unit "${unit}" set to ${newStatus==='Yes'?'Active':'Inactive'}`);
+  } catch(e) { showToast('Error updating'); }
+}
+
 // ── Bulk Package ID Change ─────────────────────────────────
 let bulkPkgUnit = '';
 
@@ -1453,6 +1512,8 @@ function closeReport() { document.getElementById('report-modal').classList.remov
 function selectReport(type, value) {
   if (type==='sheet') {
     reportSheet=value; reportStatus='';
+    document.getElementById('report-insp-section').style.display='none';
+    document.getElementById('report-sub-section').style.display='none';
     document.querySelectorAll('[id^="ropt-"]').forEach(b=>b.classList.remove('selected'));
     const btnId = value==='equipment' ? 'ropt-eq' : value==='sling_mpi' ? 'ropt-sl' : 'ropt-both';
     document.getElementById(btnId).classList.add('selected');
@@ -1466,10 +1527,18 @@ function selectReport(type, value) {
       label.textContent='Package ID';
       const pkgs = [...new Set(eqData.map(r=>r.package_id).filter(Boolean))].sort();
       sel.innerHTML='<option value="">All Packages</option>'+pkgs.map(p=>`<option value="${p}">${p}</option>`).join('');
+      // Populate inspection types for equipment
+      const inspTypes = [...new Set(eqData.map(r=>r.inspection_type).filter(Boolean))].sort();
+      document.getElementById('report-insp-select').innerHTML = '<option value="">All Types</option>'+inspTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
+      document.getElementById('report-insp-section').style.display = 'block';
     } else if (value==='sling_mpi') {
       label.textContent='Location';
       const locs=[...new Set(slData.map(r=>r.location).filter(Boolean))].sort();
       sel.innerHTML='<option value="">All Locations</option>'+locs.map(l=>`<option value="${l}">${l}</option>`).join('');
+      // Populate inspection types for sling
+      const slInspTypes = [...new Set(slData.map(r=>r.inspection_type).filter(Boolean))].sort();
+      document.getElementById('report-insp-select').innerHTML = '<option value="">All Types</option>'+slInspTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
+      document.getElementById('report-insp-section').style.display = 'block';
     } else {
       // Both — show Package ID for equipment filter
       label.textContent='Package ID (Equipment) / Location (Sling)';
@@ -1491,17 +1560,20 @@ function generateReport() {
 
   let data, headers, rows;
 
+  const inspVal = document.getElementById('report-insp-select').value;
   const filterEq = (r) => {
     const s = getStatus(r.expiry_date);
     const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
     const subMatch = subVal ? (r.package_id||'')=== subVal : true;
-    return statusMatch && subMatch;
+    const inspMatch = inspVal ? (r.inspection_type||'')=== inspVal : true;
+    return statusMatch && subMatch && inspMatch;
   };
   const filterSl = (r) => {
     const s = getStatus(r.expiry_date);
     const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
     const subMatch = subVal ? (r.location||'')=== subVal : true;
-    return statusMatch && subMatch;
+    const inspMatch = inspVal ? (r.inspection_type||'')=== inspVal : true;
+    return statusMatch && subMatch && inspMatch;
   };
 
   if (reportSheet==='both') {
