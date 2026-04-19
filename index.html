@@ -478,6 +478,14 @@
         </div>
       </div>
 
+      <div id="report-active-section" style="display:none;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Active Status</div>
+        <div style="display:flex;gap:8px;">
+          <button class="report-option selected" id="ract-all" onclick="selectActiveFilter('all')" style="flex:1;text-align:center;">All</button>
+          <button class="report-option" id="ract-yes" onclick="selectActiveFilter('yes')" style="flex:1;text-align:center;">Active</button>
+          <button class="report-option" id="ract-no" onclick="selectActiveFilter('no')" style="flex:1;text-align:center;">Inactive</button>
+        </div>
+      </div>
       <button onclick="generateReport()" style="width:100%;background:var(--green);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">⬇️ Download Excel</button>
     </div>
 
@@ -1514,6 +1522,10 @@ function selectReport(type, value) {
     reportSheet=value; reportStatus='';
     document.getElementById('report-insp-section').style.display='none';
     document.getElementById('report-sub-section').style.display='none';
+    document.getElementById('report-active-section').style.display='none';
+    reportActiveFilter = 'all';
+    ['ract-all','ract-yes','ract-no'].forEach(id => { const el=document.getElementById(id); if(el){el.classList.remove('selected');} });
+    const ractAll = document.getElementById('ract-all'); if(ractAll) ractAll.classList.add('selected');
     document.querySelectorAll('[id^="ropt-"]').forEach(b=>b.classList.remove('selected'));
     const btnId = value==='equipment' ? 'ropt-eq' : value==='sling_mpi' ? 'ropt-sl' : 'ropt-both';
     document.getElementById(btnId).classList.add('selected');
@@ -1551,7 +1563,15 @@ function selectReport(type, value) {
     const map={all:'ropt-all',expired:'ropt-exp',expiring:'ropt-expi',valid:'ropt-val'};
     document.getElementById(map[value]).classList.add('selected');
     document.getElementById('report-sub-section').style.display='block';
+    document.getElementById('report-active-section').style.display='block';
   }
+}
+
+let reportActiveFilter = 'all';
+function selectActiveFilter(val) {
+  reportActiveFilter = val;
+  ['ract-all','ract-yes','ract-no'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  document.getElementById(`ract-${val}`).classList.add('selected');
 }
 
 function generateReport() {
@@ -1561,12 +1581,15 @@ function generateReport() {
   let data, headers, rows;
 
   const inspVal = document.getElementById('report-insp-select').value;
+  const activeF = reportActiveFilter || 'all';
   const filterEq = (r) => {
     const s = getStatus(r.expiry_date);
     const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
     const subMatch = subVal ? (r.package_id||'')=== subVal : true;
     const inspMatch = inspVal ? (r.inspection_type||'')=== inspVal : true;
-    return statusMatch && subMatch && inspMatch;
+    const isActive = (r.active||'').toLowerCase()==='yes';
+    const activeMatch = activeF==='all' ? true : activeF==='yes' ? isActive : !isActive;
+    return statusMatch && subMatch && inspMatch && activeMatch;
   };
   const filterSl = (r) => {
     const s = getStatus(r.expiry_date);
@@ -1593,8 +1616,8 @@ function generateReport() {
 
   } else if (reportSheet==='equipment') {
     data = eqData.filter(filterEq);
-    headers = ['Unit Number','Category','Equipment','Serial Number','Inspection Type','Expiry Date','Package ID','Status'];
-    rows = data.map(r => [r.unit_number,r.category,r.equipment,r.serial_number,r.inspection_type,r.expiry_date||'',r.package_id||'',statusLabel(getStatus(r.expiry_date))]);
+    headers = ['Unit Number','Category','Equipment','Serial Number','Inspection Type','Expiry Date','Package ID','Active','Status'];
+    rows = data.map(r => [r.unit_number,r.category,r.equipment,r.serial_number,r.inspection_type,r.expiry_date||'',r.package_id||'',r.active||'',statusLabel(getStatus(r.expiry_date))]);
   } else {
     data = slData.filter(filterSl);
     headers = ['Equipment Type','Inspection Type','Serial Number','Expiry Date','Capacity (Ton)','LEG','Location','Status'];
