@@ -868,20 +868,27 @@ function renderCharts() {
 
 function updateKPIs() {
   let exp=0,expi=0,val=0;
-  const units=new Set(), activeU=new Set();
+  const units=new Set(), activeU=new Set(), inactiveU=new Set();
   eqData.forEach(r => {
-    const s = getStatus(r.expiry_date);
-    if (s==='expired') exp++;
-    else if (s==='expiring') expi++;
-    else if (s==='valid'||s==='watch') val++;
+    const isActive = (r.active||'').toLowerCase()==='yes';
     units.add(r.unit_number);
-    activeU.add(r.unit_number);
+    if (isActive) {
+      const s = getStatus(r.expiry_date);
+      if (s==='expired') exp++;
+      else if (s==='expiring') expi++;
+      else if (s==='valid'||s==='watch') val++;
+      activeU.add(r.unit_number);
+    } else {
+      inactiveU.add(r.unit_number);
+    }
   });
   document.getElementById('eq-expired').textContent = exp;
   document.getElementById('eq-expiring').textContent = expi;
   document.getElementById('eq-valid').textContent = val;
   document.getElementById('eq-active').textContent = activeU.size;
   document.getElementById('eq-active-sub').textContent = `of ${units.size} units`;
+  const inactEl = document.getElementById('eq-inactive');
+  if (inactEl) inactEl.textContent = inactiveU.size;
 
   let sExp=0,sExpi=0,sVal=0;
   slData.forEach(r => {
