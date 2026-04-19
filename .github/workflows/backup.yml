@@ -1,0 +1,48 @@
+name: Daily Supabase Backup
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # 4 PM Saudi time (UTC+3)
+  workflow_dispatch:  # يشتغل يدوي لو عايز
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create backups folder
+        run: mkdir -p backups
+
+      - name: Export Equipment data
+        run: |
+          curl -s "${{ secrets.SUPABASE_URL }}/rest/v1/equipment?select=*&limit=10000" \
+            -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+            -H "Accept: text/csv" \
+            > backups/$(date +%Y-%m-%d)_equipment.csv
+
+      - name: Export Sling MPI data
+        run: |
+          curl -s "${{ secrets.SUPABASE_URL }}/rest/v1/sling_mpi?select=*&limit=10000" \
+            -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+            -H "Accept: text/csv" \
+            > backups/$(date +%Y-%m-%d)_sling_mpi.csv
+
+      - name: Keep only last 5 days
+        run: |
+          cd backups
+          ls -t *_equipment.csv | tail -n +6 | xargs -r rm
+          ls -t *_sling_mpi.csv | tail -n +6 | xargs -r rm
+
+      - name: Commit and push backups
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add backups/
+          git diff --staged --quiet || git commit -m "Backup $(date +%Y-%m-%d) - Auto"
+          git push
