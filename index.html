@@ -1041,7 +1041,8 @@ function renderSlings(data) {
 function renderEqCards(data, headerColor) {
   const grouped = {};
   data.forEach(r => {
-    if (!grouped[r.unit_number]) grouped[r.unit_number] = {category:r.category, items:[]};
+    if (!grouped[r.unit_number]) grouped[r.unit_number] = {category:r.category, pkg:r.package_id||'', items:[]};
+    if (r.package_id) grouped[r.unit_number].pkg = r.package_id;
     grouped[r.unit_number].items.push(r);
   });
   return Object.entries(grouped).map(([unit, g]) => {
@@ -1063,7 +1064,7 @@ function renderEqCards(data, headerColor) {
     const pkgBtn = currentRole==='Admin' ? `<button onclick="event.stopPropagation();openBulkPkg('${unit}')" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:4px;">📦 Pkg</button>` : '';
     const activeBtn = currentRole==='Admin' ? `<button onclick="event.stopPropagation();toggleUnitActive('${unit}',${isUnitActive})" style="background:${isUnitActive?'rgba(0,176,80,0.3)':'rgba(200,0,0,0.3)'};color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:6px;">${isUnitActive?'✅ Active':'❌ Inactive'}</button>` : '';
     return `<div class="result-card"><div class="result-card-header" style="background:${headerColor||'var(--navy)'}">
-      <div><div class="rch-name">${unit}</div><div class="rch-sub">${g.category} · ${g.items.length} item(s)</div></div>
+      <div><div class="rch-name">${unit}</div><div class="rch-sub">${g.category} · ${g.items.length} item(s)${g.pkg?' · 📦 '+g.pkg:''}</div></div>
       <div style="display:flex;align-items:center;">${pkgBtn}${activeBtn}<span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>
       </div>${rows}</div>`;
   }).join('');
