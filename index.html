@@ -1003,7 +1003,11 @@ async function searchUnit() {
   if (!q) return;
   const area = document.getElementById('unit-results');
   area.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  const filtered = eqData.filter(r => r.unit_number.toLowerCase().includes(q.toLowerCase()));
+  const filtered = eqData.filter(r => {
+    const matchQ = r.unit_number.toLowerCase().includes(q.toLowerCase());
+    const isActive = (r.active||'').toLowerCase()==='yes';
+    return matchQ && (currentRole==='Admin' ? true : isActive);
+  });
   area.innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--navy)') : '<div class="empty">No results found</div>';
 }
 function clearUnit() { document.getElementById('unit-input').value=''; document.getElementById('unit-results').innerHTML='<div class="empty">Enter a unit number to search</div>'; }
@@ -1012,7 +1016,11 @@ function clearUnit() { document.getElementById('unit-input').value=''; document.
 async function searchPackage() {
   const q = document.getElementById('pkg-input').value.trim().toLowerCase();
   if (!q) return;
-  const filtered = eqData.filter(r => (r.package_id||'').toLowerCase().includes(q));
+  const filtered = eqData.filter(r => {
+    const matchQ = (r.package_id||'').toLowerCase().includes(q);
+    const isActive = (r.active||'').toLowerCase()==='yes';
+    return matchQ && (currentRole==='Admin' ? true : isActive);
+  });
   document.getElementById('pkg-results').innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--blue)') : '<div class="empty">No results found</div>';
 }
 function clearPackage() { document.getElementById('pkg-input').value=''; document.getElementById('pkg-results').innerHTML='<div class="empty">Enter a Package ID to search</div>'; }
