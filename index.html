@@ -101,7 +101,7 @@
   .toast.show { transform: translateX(-50%) translateY(0); }
 
   /* Login */
-  #login-screen { position: fixed; top:0; left:0; right:0; bottom:0; background: var(--navy); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
+  #login-screen { position: fixed; top:0; left:0; right:0; bottom:0; background: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
   .login-box { width: 100%; max-width: 300px; display: grid; gap: 10px; }
   .login-input { width: 100%; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 13px 16px; color: #fff; font-size: 15px; font-family: inherit; outline: none; }
   .login-input::placeholder { color: rgba(255,255,255,0.5); }
@@ -677,8 +677,14 @@ function doLogout() {
 
 window.addEventListener('load', () => {
   const u = sessionStorage.getItem('user'), r = sessionStorage.getItem('role');
-  if (u && r) { currentUser = u; currentRole = r; onLoginSuccess(); }
-  else { document.getElementById('login-screen').style.display = 'flex'; setTimeout(() => document.getElementById('login-username').focus(), 100); }
+  if (u && r) {
+    currentUser = u; currentRole = r;
+    document.getElementById('login-screen').style.display = 'none';
+    onLoginSuccess();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    setTimeout(() => document.getElementById('login-username').focus(), 100);
+  }
 });
 
 // ── Load Data ──────────────────────────────────────────────
