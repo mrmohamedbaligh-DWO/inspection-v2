@@ -131,6 +131,8 @@
   .report-option:active { background: var(--blue-light); }
   .report-option.selected { border-color: var(--navy); background: var(--blue-light); color: var(--navy); }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -1398,6 +1400,7 @@ async function changePassword(id, username, newPwd) {
 }
 
 function generatePackageReport() {
+  if (typeof XLSX === 'undefined') { showToast('Excel library not loaded. Try again.'); return; }
   var pkgVal  = document.getElementById('pkg-report-pkg').value;
   var wellNum = document.getElementById('pkg-report-well').value.trim();
   var rigNum  = document.getElementById('pkg-report-rig').value.trim();
@@ -1865,7 +1868,7 @@ function generateReport() {
   showToast('✓ Report downloaded!');
 }
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
 </body>
 </html>
