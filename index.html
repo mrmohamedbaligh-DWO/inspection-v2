@@ -454,6 +454,20 @@
       <button class="report-option" id="ropt-eq" onclick="selectReport('sheet','equipment')" style="flex:1;text-align:center;">Equipment</button>
       <button class="report-option" id="ropt-sl" onclick="selectReport('sheet','sling_mpi')" style="flex:1;text-align:center;">Sling / MPI</button>
       <button class="report-option" id="ropt-both" onclick="selectReport('sheet','both')" style="flex:1;text-align:center;">Both</button>
+      <button class="report-option" id="ropt-pkg" onclick="selectReport('sheet','package_report')" style="flex:1;text-align:center;background:var(--blue-light);color:var(--navy);font-weight:600;">📋 Package Report</button>
+    </div>
+
+    <!-- Package Report Section -->
+    <div id="pkg-report-section" style="display:none;">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Package ID</div>
+      <select id="pkg-report-pkg" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;">
+        <option value="">All Packages</option>
+      </select>
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Well Number</div>
+      <input id="pkg-report-well" type="text" placeholder="e.g. Well-123" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;" />
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Rig Number</div>
+      <input id="pkg-report-rig" type="text" placeholder="e.g. Rig-456" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:14px;" />
+      <button onclick="generatePackageReport()" style="width:100%;background:var(--navy);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">📋 Generate Package Report</button>
     </div>
 
     <div id="report-filter-section" style="display:none;">
@@ -1379,6 +1393,110 @@ async function changePassword(id, username, newPwd) {
   } catch(e) { showToast('Error changing password'); }
 }
 
+// ── Package Report Generator ───────────────────────────────
+function generatePackageReport() {
+  const pkgVal  = document.getElementById('pkg-report-pkg').value;
+  const wellNum = document.getElementById('pkg-report-well').value.trim();
+  const rigNum  = document.getElementById('pkg-report-rig').value.trim();
+
+  // Filter equipment by package
+  let data = pkgVal ? eqData.filter(r => r.package_id === pkgVal) : eqData;
+  data = data.filter(r => (r.active||'').toLowerCase()==='yes');
+
+  if (!data.length) { showToast('No data found for this package'); return; }
+
+  const sections = [
+    { name: 'Section 1 — CT Unit',           prefixes: ['CC','PP','WR','GK','INJ','SR','BOP'] },
+    { name: 'Section 2 — Pump Units',         prefixes: ['PU'] },
+    { name: 'Section 3 — N2 Units',           prefixes: ['45'] },
+    { name: 'Section 4 — Tool Box',           prefixes: ['TB'] },
+    { name: 'Section 5 — Iron Baskets',       prefixes: ['IB'] },
+    { name: 'Section 6 — Risers',             prefixes: ['LB','RB'] },
+    { name: 'Section 7 — Well Head X-overs',  prefixes: ['XO'] },
+  ];
+
+  const today = new Date().toLocaleDateString('en-GB');
+  const pkgLabel = pkgVal || 'All Packages';
+
+  // Build CSV
+  let csv = '';
+
+  // Header info
+  csv += `"NESR — Equipment Inspection Report"
+`;
+  csv += `"Package:","${pkgLabel}","Well:","${wellNum||'—'}","Rig:","${rigNum||'—'}","Date:","${today}"
+`;
+  csv += `
+`;
+
+  const cols = ['Unit Number','Category','Equipment','Serial Number','Inspection Type','Expiry Date','Status'];
+
+  sections.forEach(sec => {
+    const secData = data.filter(r =>
+      sec.prefixes.some(p => r.unit_number.toUpperCase().startsWith(p))
+    );
+    if (!secData.length) return;
+
+    csv += `"${sec.name}"
+`;
+    csv += cols.map(c=>`"${c}"`).join(',') + '
+';
+
+    // Group by unit
+    const grouped = {};
+    secData.forEach(r => {
+      if (!grouped[r.unit_number]) grouped[r.unit_number] = [];
+      grouped[r.unit_number].push(r);
+    });
+
+    Object.entries(grouped).sort().forEach(([unit, items]) => {
+      items.forEach(item => {
+        const s = statusLabel(getStatus(item.expiry_date));
+        const row = [
+          item.unit_number, item.category, item.equipment,
+          item.serial_number||'', item.inspection_type,
+          item.expiry_date||'', s
+        ];
+        csv += row.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',') + '
+';
+      });
+    });
+    csv += '
+';
+  });
+
+  // Items not in any section
+  const categorized = data.filter(r =>
+    sections.some(sec => sec.prefixes.some(p => r.unit_number.toUpperCase().startsWith(p)))
+  );
+  const uncategorized = data.filter(r =>
+    !sections.some(sec => sec.prefixes.some(p => r.unit_number.toUpperCase().startsWith(p)))
+  );
+  if (uncategorized.length) {
+    csv += `"Other Equipment"
+`;
+    csv += cols.map(c=>`"${c}"`).join(',') + '
+';
+    uncategorized.forEach(item => {
+      const s = statusLabel(getStatus(item.expiry_date));
+      const row = [item.unit_number, item.category, item.equipment, item.serial_number||'', item.inspection_type, item.expiry_date||'', s];
+      csv += row.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',') + '
+';
+    });
+  }
+
+  // Download
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `PackageReport_${pkgLabel}_${today.split('/').join('-')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  closeReport();
+  showToast('✓ Package Report downloaded!');
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
@@ -1539,10 +1657,22 @@ function selectReport(type, value) {
     document.getElementById('report-insp-section').style.display='none';
     document.getElementById('report-sub-section').style.display='none';
     document.getElementById('report-active-section').style.display='none';
+    document.getElementById('pkg-report-section').style.display='none';
+    document.getElementById('report-filter-section').style.display='none';
     reportActiveFilter = 'all';
     ['ract-all','ract-yes','ract-no'].forEach(id => { const el=document.getElementById(id); if(el){el.classList.remove('selected');} });
     const ractAll = document.getElementById('ract-all'); if(ractAll) ractAll.classList.add('selected');
     document.querySelectorAll('[id^="ropt-"]').forEach(b=>b.classList.remove('selected'));
+
+    if (value==='package_report') {
+      document.getElementById('ropt-pkg').classList.add('selected');
+      // Populate packages
+      const pkgs = [...new Set(eqData.map(r=>r.package_id).filter(Boolean))].sort();
+      document.getElementById('pkg-report-pkg').innerHTML = '<option value="">All Packages</option>'+pkgs.map(p=>`<option value="${p}">${p}</option>`).join('');
+      document.getElementById('pkg-report-section').style.display='block';
+      return;
+    }
+
     const btnId = value==='equipment' ? 'ropt-eq' : value==='sling_mpi' ? 'ropt-sl' : 'ropt-both';
     document.getElementById(btnId).classList.add('selected');
     document.getElementById('report-filter-section').style.display='block';
