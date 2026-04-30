@@ -1398,65 +1398,56 @@ async function changePassword(id, username, newPwd) {
 }
 
 function generatePackageReport() {
-  const pkgVal  = document.getElementById('pkg-report-pkg').value;
-  const wellNum = document.getElementById('pkg-report-well').value.trim();
-  const rigNum  = document.getElementById('pkg-report-rig').value.trim();
-  let data = pkgVal ? eqData.filter(r => r.package_id === pkgVal) : eqData;
-  data = data.filter(r => (r.active||'').toLowerCase()==='yes');
+  var pkgVal  = document.getElementById('pkg-report-pkg').value;
+  var wellNum = document.getElementById('pkg-report-well').value.trim();
+  var rigNum  = document.getElementById('pkg-report-rig').value.trim();
+  var data = pkgVal ? eqData.filter(function(r){ return r.package_id === pkgVal; }) : eqData.slice();
+  data = data.filter(function(r){ return (r.active||'').toLowerCase()==='yes'; });
   if (!data.length) { showToast('No data found'); return; }
-  const sections = [
+  var sections = [
     { name: 'Section 1 - CT Unit',          prefixes: ['CC','PP','WR','GK','INJ','SR','BOP'] },
     { name: 'Section 2 - Pump Units',        prefixes: ['PU'] },
     { name: 'Section 3 - N2 Units',          prefixes: ['45'] },
     { name: 'Section 4 - Tool Box',          prefixes: ['TB'] },
     { name: 'Section 5 - Iron Baskets',      prefixes: ['IB'] },
     { name: 'Section 6 - Risers',            prefixes: ['LB','RB'] },
-    { name: 'Section 7 - Well Head X-overs', prefixes: ['XO'] },
+    { name: 'Section 7 - Well Head X-overs', prefixes: ['XO'] }
   ];
-  const today = new Date().toLocaleDateString('en-GB');
-  const pkgLabel = pkgVal || 'All Packages';
-  const cols = ['Unit Number','Category','Equipment','Serial Number','Inspection Type','Expiry Date','Status'];
-  let csv = '"NESR - Equipment Inspection Report"
-';
-  csv += '"Package:","' + pkgLabel + '","Well:","' + (wellNum||'-') + '","Rig:","' + (rigNum||'-') + '","Date:","' + today + '"
-
-';
-  sections.forEach(sec => {
-    const secData = data.filter(r => sec.prefixes.some(p => r.unit_number.toUpperCase().startsWith(p)));
+  var today = new Date().toLocaleDateString('en-GB');
+  var pkgLabel = pkgVal || 'All Packages';
+  var cols = ['Unit Number','Category','Equipment','Serial Number','Inspection Type','Expiry Date','Status'];
+  var NL = String.fromCharCode(10);
+  var csv = '"NESR - Equipment Inspection Report"' + NL;
+  csv += '"Package:","' + pkgLabel + '","Well:","' + (wellNum||'-') + '","Rig:","' + (rigNum||'-') + '","Date:","' + today + '"' + NL + NL;
+  sections.forEach(function(sec) {
+    var secData = data.filter(function(r){ return sec.prefixes.some(function(p){ return r.unit_number.toUpperCase().startsWith(p); }); });
     if (!secData.length) return;
-    csv += '"' + sec.name + '"
-';
-    csv += cols.map(c => '"'+c+'"').join(',') + '
-';
-    const grouped = {};
-    secData.forEach(r => { if (!grouped[r.unit_number]) grouped[r.unit_number] = []; grouped[r.unit_number].push(r); });
-    Object.entries(grouped).sort().forEach(([unit, items]) => {
-      items.forEach(item => {
-        const s = statusLabel(getStatus(item.expiry_date));
-        csv += [item.unit_number,item.category||'',item.equipment||'',item.serial_number||'',item.inspection_type||'',item.expiry_date||'',s]
-          .map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',') + '
-';
+    csv += '"' + sec.name + '"' + NL;
+    csv += cols.map(function(c){ return '"'+c+'"'; }).join(',') + NL;
+    var grouped = {};
+    secData.forEach(function(r){ if (!grouped[r.unit_number]) grouped[r.unit_number] = []; grouped[r.unit_number].push(r); });
+    Object.keys(grouped).sort().forEach(function(unit) {
+      grouped[unit].forEach(function(item) {
+        var s = statusLabel(getStatus(item.expiry_date));
+        var row = [item.unit_number,item.category||'',item.equipment||'',item.serial_number||'',item.inspection_type||'',item.expiry_date||'',s];
+        csv += row.map(function(v){ return '"' + String(v||'').replace(/"/g,'""') + '"'; }).join(',') + NL;
       });
     });
-    csv += '
-';
+    csv += NL;
   });
-  const uncategorized = data.filter(r => !sections.some(sec => sec.prefixes.some(p => r.unit_number.toUpperCase().startsWith(p))));
+  var uncategorized = data.filter(function(r){ return !sections.some(function(sec){ return sec.prefixes.some(function(p){ return r.unit_number.toUpperCase().startsWith(p); }); }); });
   if (uncategorized.length) {
-    csv += '"Other Equipment"
-';
-    csv += cols.map(c => '"'+c+'"').join(',') + '
-';
-    uncategorized.forEach(item => {
-      const s = statusLabel(getStatus(item.expiry_date));
-      csv += [item.unit_number,item.category||'',item.equipment||'',item.serial_number||'',item.inspection_type||'',item.expiry_date||'',s]
-        .map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',') + '
-';
+    csv += '"Other Equipment"' + NL;
+    csv += cols.map(function(c){ return '"'+c+'"'; }).join(',') + NL;
+    uncategorized.forEach(function(item) {
+      var s = statusLabel(getStatus(item.expiry_date));
+      var row = [item.unit_number,item.category||'',item.equipment||'',item.serial_number||'',item.inspection_type||'',item.expiry_date||'',s];
+      csv += row.map(function(v){ return '"' + String(v||'').replace(/"/g,'""') + '"'; }).join(',') + NL;
     });
   }
-  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
   a.href = url;
   a.download = 'PackageReport_' + pkgLabel + '_' + today.split('/').join('-') + '.csv';
   a.click();
@@ -1464,7 +1455,6 @@ function generatePackageReport() {
   closeReport();
   showToast('Package Report downloaded!');
 }
-
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
