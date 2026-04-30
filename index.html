@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Equipment Inspection</title>
 <style>
@@ -459,13 +458,9 @@
     <div style="margin-bottom:14px;">
       <button class="report-option" id="ropt-pkg" onclick="selectReport('sheet','package_report')" style="width:100%;text-align:center;background:var(--blue-light);color:var(--navy);font-weight:700;border-color:var(--navy);">📋 Package Report</button>
     </div>
-
-    <!-- Package Report Fields -->
     <div id="pkg-report-section" style="display:none;margin-bottom:14px;">
       <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Package ID</div>
-      <select id="pkg-report-pkg" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;">
-        <option value="">All Packages</option>
-      </select>
+      <select id="pkg-report-pkg" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;"><option value="">All Packages</option></select>
       <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Well Number</div>
       <input id="pkg-report-well" type="text" placeholder="e.g. Well-123" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;" />
       <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Rig Number</div>
@@ -1406,12 +1401,9 @@ function generatePackageReport() {
   const pkgVal  = document.getElementById('pkg-report-pkg').value;
   const wellNum = document.getElementById('pkg-report-well').value.trim();
   const rigNum  = document.getElementById('pkg-report-rig').value.trim();
-
   let data = pkgVal ? eqData.filter(r => r.package_id === pkgVal) : eqData;
   data = data.filter(r => (r.active||'').toLowerCase()==='yes');
-
-  if (!data.length) { showToast('No data found for this package'); return; }
-
+  if (!data.length) { showToast('No data found'); return; }
   const sections = [
     { name: 'Section 1 - CT Unit',          prefixes: ['CC','PP','WR','GK','INJ','SR','BOP'] },
     { name: 'Section 2 - Pump Units',        prefixes: ['PU'] },
@@ -1421,17 +1413,14 @@ function generatePackageReport() {
     { name: 'Section 6 - Risers',            prefixes: ['LB','RB'] },
     { name: 'Section 7 - Well Head X-overs', prefixes: ['XO'] },
   ];
-
   const today = new Date().toLocaleDateString('en-GB');
   const pkgLabel = pkgVal || 'All Packages';
   const cols = ['Unit Number','Category','Equipment','Serial Number','Inspection Type','Expiry Date','Status'];
-
   let csv = '"NESR - Equipment Inspection Report"
 ';
   csv += '"Package:","' + pkgLabel + '","Well:","' + (wellNum||'-') + '","Rig:","' + (rigNum||'-') + '","Date:","' + today + '"
 
 ';
-
   sections.forEach(sec => {
     const secData = data.filter(r => sec.prefixes.some(p => r.unit_number.toUpperCase().startsWith(p)));
     if (!secData.length) return;
@@ -1452,7 +1441,6 @@ function generatePackageReport() {
     csv += '
 ';
   });
-
   const uncategorized = data.filter(r => !sections.some(sec => sec.prefixes.some(p => r.unit_number.toUpperCase().startsWith(p))));
   if (uncategorized.length) {
     csv += '"Other Equipment"
@@ -1466,7 +1454,6 @@ function generatePackageReport() {
 ';
     });
   }
-
   const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1644,7 +1631,6 @@ function selectReport(type, value) {
     ['ract-all','ract-yes','ract-no'].forEach(id => { const el=document.getElementById(id); if(el){el.classList.remove('selected');} });
     const ractAll = document.getElementById('ract-all'); if(ractAll) ractAll.classList.add('selected');
     document.querySelectorAll('[id^="ropt-"]').forEach(b=>b.classList.remove('selected'));
-
     if (value === 'package_report') {
       document.getElementById('ropt-pkg').classList.add('selected');
       const pkgs = [...new Set(eqData.map(r=>r.package_id).filter(Boolean))].sort();
@@ -1652,7 +1638,6 @@ function selectReport(type, value) {
       document.getElementById('pkg-report-section').style.display='block';
       return;
     }
-
     const btnId = value==='equipment' ? 'ropt-eq' : value==='sling_mpi' ? 'ropt-sl' : 'ropt-both';
     document.getElementById(btnId).classList.add('selected');
     document.getElementById('report-filter-section').style.display='block';
@@ -1769,6 +1754,6 @@ function generateReport() {
   showToast('✓ Report downloaded!');
 }
 </script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
 </html>
