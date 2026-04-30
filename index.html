@@ -1417,9 +1417,8 @@ function generatePackageReport() {
 
   var today = new Date().toLocaleDateString('en-GB');
   var pkgLabel = pkgVal || 'All Packages';
-  var NL = String.fromCharCode(10);
 
-  // Summary counts
+  // Summary
   var totalExp=0, totalExpi=0, totalVal=0;
   data.forEach(function(r) {
     var s = getStatus(r.expiry_date);
@@ -1428,80 +1427,152 @@ function generatePackageReport() {
     else totalVal++;
   });
 
-  var csv = '"NESR - Equipment Inspection Report"' + NL;
-  csv += '"Package:","' + pkgLabel + '","Well:","' + (wellNum||'-') + '","Rig:","' + (rigNum||'-') + '","Date:","' + today + '"' + NL;
-  csv += NL;
-  csv += '"=== SUMMARY ==="' + NL;
-  csv += '"Total Equipment","Expired","Expiring (30d)","Valid"' + NL;
-  csv += '"' + data.length + '","' + totalExp + '","' + totalExpi + '","' + totalVal + '"' + NL;
-  csv += NL;
+  var wb = XLSX.utils.book_new();
+  var wsData = [];
+
+  // Colors
+  var NAVY   = '1F3864';
+  var BLUE   = '2E75B6';
+  var RED_BG = 'FFEBEB';
+  var RED_FG = 'C00000';
+  var ORA_BG = 'FFF3EB';
+  var ORA_FG = 'ED7D31';
+  var GRN_BG = 'EAFAF0';
+  var GRN_FG = '00B050';
+  var WHITE  = 'FFFFFF';
+  var HDR_BG = 'EBF2FF';
+
+  var merges = [];
+  var styles = {};
+  var row = 0;
+
+  function addRow(values) { wsData.push(values); row++; }
+  function setStyle(r, c, style) { styles[r+'_'+c] = style; }
+
+  // Header row 0
+  addRow(['NESR - Equipment Inspection Report', '', '', '', '', '']);
+  for (var c=0; c<6; c++) setStyle(0, c, {font:{bold:true,color:{rgb:WHITE},sz:13}, fill:{fgColor:{rgb:NAVY}}, alignment:{horizontal:'center'}});
+  merges.push({s:{r:0,c:0},e:{r:0,c:5}});
+
+  // Info row 1
+  addRow(['Package:', pkgLabel, 'Well:', wellNum||'-', 'Rig:', rigNum||'-']);
+  setStyle(1,0,{font:{bold:true,color:{rgb:'0C447C'}},fill:{fgColor:{rgb:HDR_BG}}});
+  setStyle(1,1,{font:{color:{rgb:'0C447C'}},fill:{fgColor:{rgb:HDR_BG}}});
+  setStyle(1,2,{font:{bold:true,color:{rgb:'0C447C'}},fill:{fgColor:{rgb:HDR_BG}}});
+  setStyle(1,3,{font:{color:{rgb:'0C447C'}},fill:{fgColor:{rgb:HDR_BG}}});
+  setStyle(1,4,{font:{bold:true,color:{rgb:'0C447C'}},fill:{fgColor:{rgb:HDR_BG}}});
+  setStyle(1,5,{font:{color:{rgb:'0C447C'}},fill:{fgColor:{rgb:HDR_BG}}});
+
+  // Date row 2
+  addRow(['Date:', today, '', '', '', '']);
+  setStyle(2,0,{font:{bold:true,color:{rgb:'0C447C'}},fill:{fgColor:{rgb:HDR_BG}}});
+  setStyle(2,1,{font:{color:{rgb:'0C447C'}},fill:{fgColor:{rgb:HDR_BG}}});
+
+  // Empty row 3
+  addRow(['','','','','','']);
+  row++;
+
+  // Summary row 4
+  addRow(['SUMMARY','','','','','']);
+  setStyle(4,0,{font:{bold:true,color:{rgb:WHITE}},fill:{fgColor:{rgb:BLUE}},alignment:{horizontal:'center'}});
+  merges.push({s:{r:4,c:0},e:{r:4,c:5}});
+
+  // Summary headers row 5
+  addRow(['Total Equipment','Expired','Expiring (30d)','Valid','','']);
+  ['Total Equipment','Expired','Expiring (30d)','Valid'].forEach(function(_,i){
+    setStyle(5,i,{font:{bold:true,color:{rgb:WHITE}},fill:{fgColor:{rgb:BLUE}}});
+  });
+
+  // Summary values row 6
+  addRow([data.length, totalExp, totalExpi, totalVal,'','']);
+  setStyle(6,0,{font:{bold:true,sz:12},alignment:{horizontal:'center'}});
+  setStyle(6,1,{font:{bold:true,color:{rgb:RED_FG},sz:12},alignment:{horizontal:'center'}});
+  setStyle(6,2,{font:{bold:true,color:{rgb:ORA_FG},sz:12},alignment:{horizontal:'center'}});
+  setStyle(6,3,{font:{bold:true,color:{rgb:GRN_FG},sz:12},alignment:{horizontal:'center'}});
+
+  addRow(['','','','','','']);
 
   var cols = ['Unit Number','Equipment','Serial Number','Inspection Type','Expiry Date','Status'];
+
+  function addSection(name, secData, color) {
+    // Section header
+    addRow([name,'','','','','']);
+    for (var c=0; c<6; c++) setStyle(row-1,c,{font:{bold:true,color:{rgb:WHITE},sz:11},fill:{fgColor:{rgb:color}},alignment:{horizontal:'center'}});
+    merges.push({s:{r:row-1,c:0},e:{r:row-1,c:5}});
+
+    // Column headers
+    addRow(cols);
+    cols.forEach(function(_,c){
+      setStyle(row-1,c,{font:{bold:true,color:{rgb:color}},fill:{fgColor:{rgb:HDR_BG}},border:{bottom:{style:'thin',color:{rgb:color}}}});
+    });
+
+    // Sort: expired, expiring, valid
+    secData.sort(function(a,b){
+      var o={expired:0,expiring:1,watch:2,valid:3,unknown:4};
+      return (o[getStatus(a.expiry_date)]||4)-(o[getStatus(b.expiry_date)]||4);
+    });
+
+    // Group by unit
+    var grouped = {};
+    secData.forEach(function(r){ if(!grouped[r.unit_number]) grouped[r.unit_number]=[]; grouped[r.unit_number].push(r); });
+
+    Object.keys(grouped).sort().forEach(function(unit) {
+      grouped[unit].forEach(function(item) {
+        var s = getStatus(item.expiry_date);
+        var sl = statusLabel(s);
+        var expDate = item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('en-GB') : '';
+        addRow([item.unit_number, item.equipment||'', item.serial_number||'', item.inspection_type||'', expDate, sl]);
+        var rowBg = s==='expired' ? RED_BG : s==='expiring' ? ORA_BG : '';
+        var fgCol = s==='expired' ? RED_FG : s==='expiring' ? ORA_FG : s==='valid'||s==='watch' ? GRN_FG : '000000';
+        for (var c=0; c<5; c++) {
+          if (rowBg) setStyle(row-1,c,{fill:{fgColor:{rgb:rowBg}}});
+        }
+        setStyle(row-1,5,{font:{bold:true,color:{rgb:fgCol}},fill:{fgColor:{rgb:rowBg||'F5F5F5'}}});
+      });
+    });
+    addRow(['','','','','','']);
+  }
 
   sections.forEach(function(sec) {
     var secData = data.filter(function(r){
       return sec.prefixes.some(function(p){ return r.unit_number.toUpperCase().startsWith(p); });
     });
     if (!secData.length) return;
-
-    // Sort: expired first, then expiring, then valid
-    secData.sort(function(a,b) {
-      var order = {expired:0, expiring:1, watch:2, valid:3, unknown:4};
-      return (order[getStatus(a.expiry_date)]||4) - (order[getStatus(b.expiry_date)]||4);
-    });
-
-    csv += '">>> ' + sec.name + ' <<<"' + NL;
-    csv += cols.map(function(c){ return '"'+c+'"'; }).join(',') + NL;
-
-    var grouped = {};
-    secData.forEach(function(r){
-      if (!grouped[r.unit_number]) grouped[r.unit_number] = [];
-      grouped[r.unit_number].push(r);
-    });
-
-    Object.keys(grouped).sort().forEach(function(unit) {
-      grouped[unit].forEach(function(item) {
-        var s = statusLabel(getStatus(item.expiry_date));
-        var row = [
-          item.unit_number,
-          item.equipment||'',
-          item.serial_number||'',
-          item.inspection_type||'',
-          item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('en-GB') : '',
-          s
-        ];
-        csv += row.map(function(v){ return '"' + String(v||'').replace(/"/g,'""') + '"'; }).join(',') + NL;
-      });
-    });
-    csv += NL;
+    addSection(sec.name, secData, NAVY);
   });
 
-  // Other
   var uncategorized = data.filter(function(r){
     return !sections.some(function(sec){
       return sec.prefixes.some(function(p){ return r.unit_number.toUpperCase().startsWith(p); });
     });
   });
-  if (uncategorized.length) {
-    csv += '">>> Other Equipment <<<"' + NL;
-    csv += cols.map(function(c){ return '"'+c+'"'; }).join(',') + NL;
-    uncategorized.forEach(function(item) {
-      var s = statusLabel(getStatus(item.expiry_date));
-      var row = [item.unit_number, item.equipment||'', item.serial_number||'', item.inspection_type||'', item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('en-GB') : '', s];
-      csv += row.map(function(v){ return '"' + String(v||'').replace(/"/g,'""') + '"'; }).join(',') + NL;
-    });
-    csv += NL;
-  }
+  if (uncategorized.length) addSection('Other Equipment', uncategorized, BLUE);
 
-  csv += '"--- Generated by NESR DWO Equipment Inspection System ---"' + NL;
+  // Footer
+  addRow(['Generated by NESR DWO Equipment Inspection System','','','','','']);
+  setStyle(row-1,0,{font:{italic:true,color:{rgb:'888888'}},alignment:{horizontal:'center'}});
+  merges.push({s:{r:row-1,c:0},e:{r:row-1,c:5}});
 
-  var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'PackageReport_' + pkgLabel + '_' + today.split('/').join('-') + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  // Build worksheet
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Apply styles
+  Object.keys(styles).forEach(function(key) {
+    var parts = key.split('_');
+    var r = parseInt(parts[0]), c = parseInt(parts[1]);
+    var cellRef = XLSX.utils.encode_cell({r:r,c:c});
+    if (!ws[cellRef]) ws[cellRef] = {t:'s',v:''};
+    ws[cellRef].s = styles[key];
+  });
+
+  // Apply merges
+  ws['!merges'] = merges;
+
+  // Column widths
+  ws['!cols'] = [{wch:15},{wch:28},{wch:18},{wch:18},{wch:14},{wch:14}];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Package Report');
+  XLSX.writeFile(wb, 'PackageReport_' + pkgLabel + '_' + today.split('/').join('-') + '.xlsx');
   closeReport();
   showToast('Package Report downloaded!');
 }
@@ -1795,5 +1866,6 @@ function generateReport() {
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
 </html>
