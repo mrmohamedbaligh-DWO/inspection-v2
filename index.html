@@ -15,8 +15,33 @@
     --gray-light: #F5F5F5;
   }
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: #F0F4F8; color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; }
+  @media (min-width: 768px) {
+    body { max-width: 100%; }
+    .header { max-width: 100%; }
+    .tab-content { max-width: 100%; }
+    .kpi-grid { grid-template-columns: repeat(4, 1fr); max-width: 1200px; margin: 0 auto; }
+    .kpi-section-label { max-width: 1200px; margin-left: auto; margin-right: auto; }
+    .search-section { max-width: 1200px; margin: 0 auto; }
+    .results-area { max-width: 1200px; margin: 0 auto; }
+    .eq-charts-section-wrapper, #eq-charts-section, #sl-charts-section { max-width: 1200px; margin: 0 auto; }
+    #eq-accordion, #sl-accordion { max-width: 1200px; margin: 0 auto; }
+    #inactive-kpi-section { max-width: 1200px; margin: 0 auto; padding: 0 12px 8px; }
+    .modal { max-width: 500px; border-radius: 16px; margin: auto; }
+    .modal-overlay { align-items: center; }
+    .report-box { max-width: 500px; border-radius: 16px; margin: auto; }
+    .report-modal { align-items: center; }
+    .header-top { padding: 0 24px; }
+    .tabs { padding: 0 12px; }
+    .login-box { max-width: 360px; }
+    #login-screen { background: var(--navy); }
+    .result-card { margin-bottom: 10px; }
+  }
+  @media (min-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+    .result-card { display: inline-block; width: calc(50% - 8px); vertical-align: top; margin-right: 8px; }
+  }
 
-  .header { background: var(--navy); padding: 16px 16px 0; position: sticky; top: 0; z-index: 100; }
+  .header { background: var(--navy); padding: 16px 16px 0; position: sticky; top: 0; z-index: 100; width: 100%; }
   .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .header-title { color: #fff; font-size: 17px; font-weight: 600; }
   .header-date { color: #BDD7EE; font-size: 11px; margin-top: 2px; }
@@ -100,7 +125,7 @@
   .toast.show { transform: translateX(-50%) translateY(0); }
 
   /* Login */
-  #login-screen { position: fixed; top:0; left:0; right:0; bottom:0; background: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
+  #login-screen { position: fixed; top:0; left:0; right:0; bottom:0; background: var(--navy); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
   .login-box { width: 100%; max-width: 300px; display: grid; gap: 10px; }
   .login-input { width: 100%; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 13px 16px; color: #fff; font-size: 15px; font-family: inherit; outline: none; }
   .login-input::placeholder { color: rgba(255,255,255,0.5); }
@@ -131,8 +156,6 @@
   .report-option:active { background: var(--blue-light); }
   .report-option.selected { border-color: var(--navy); background: var(--blue-light); color: var(--navy); }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 </head>
 <body>
 
@@ -452,22 +475,10 @@
     <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Choose what to export as Excel</div>
 
     <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Sheet</div>
-    <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
       <button class="report-option" id="ropt-eq" onclick="selectReport('sheet','equipment')" style="flex:1;text-align:center;">Equipment</button>
       <button class="report-option" id="ropt-sl" onclick="selectReport('sheet','sling_mpi')" style="flex:1;text-align:center;">Sling / MPI</button>
       <button class="report-option" id="ropt-both" onclick="selectReport('sheet','both')" style="flex:1;text-align:center;">Both</button>
-    </div>
-    <div style="margin-bottom:14px;">
-      <button class="report-option" id="ropt-pkg" onclick="selectReport('sheet','package_report')" style="width:100%;text-align:center;background:var(--blue-light);color:var(--navy);font-weight:700;border-color:var(--navy);">📋 Package Report</button>
-    </div>
-    <div id="pkg-report-section" style="display:none;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Package ID</div>
-      <select id="pkg-report-pkg" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;"><option value="">All Packages</option></select>
-      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Well Number</div>
-      <input id="pkg-report-well" type="text" placeholder="e.g. Well-123" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;" />
-      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Rig Number</div>
-      <input id="pkg-report-rig" type="text" placeholder="e.g. Rig-456" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:14px;" />
-      <button onclick="generatePackageReport()" style="width:100%;background:var(--navy);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">📋 Generate Package Report</button>
     </div>
 
     <div id="report-filter-section" style="display:none;">
@@ -674,14 +685,8 @@ function doLogout() {
 
 window.addEventListener('load', () => {
   const u = sessionStorage.getItem('user'), r = sessionStorage.getItem('role');
-  if (u && r) {
-    currentUser = u; currentRole = r;
-    document.getElementById('login-screen').style.display = 'none';
-    onLoginSuccess();
-  } else {
-    document.getElementById('login-screen').style.display = 'flex';
-    setTimeout(() => document.getElementById('login-username').focus(), 100);
-  }
+  if (u && r) { currentUser = u; currentRole = r; onLoginSuccess(); }
+  else { document.getElementById('login-screen').style.display = 'flex'; setTimeout(() => document.getElementById('login-username').focus(), 100); }
 });
 
 // ── Load Data ──────────────────────────────────────────────
@@ -1023,11 +1028,7 @@ async function searchUnit() {
   if (!q) return;
   const area = document.getElementById('unit-results');
   area.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  const filtered = eqData.filter(r => {
-    const matchQ = r.unit_number.toLowerCase().includes(q.toLowerCase());
-    const isActive = (r.active||'').toLowerCase()==='yes';
-    return matchQ && (currentRole==='Admin' ? true : isActive);
-  });
+  const filtered = eqData.filter(r => r.unit_number.toLowerCase().includes(q.toLowerCase()));
   area.innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--navy)') : '<div class="empty">No results found</div>';
 }
 function clearUnit() { document.getElementById('unit-input').value=''; document.getElementById('unit-results').innerHTML='<div class="empty">Enter a unit number to search</div>'; }
@@ -1036,11 +1037,7 @@ function clearUnit() { document.getElementById('unit-input').value=''; document.
 async function searchPackage() {
   const q = document.getElementById('pkg-input').value.trim().toLowerCase();
   if (!q) return;
-  const filtered = eqData.filter(r => {
-    const matchQ = (r.package_id||'').toLowerCase().includes(q);
-    const isActive = (r.active||'').toLowerCase()==='yes';
-    return matchQ && (currentRole==='Admin' ? true : isActive);
-  });
+  const filtered = eqData.filter(r => (r.package_id||'').toLowerCase().includes(q));
   document.getElementById('pkg-results').innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--blue)') : '<div class="empty">No results found</div>';
 }
 function clearPackage() { document.getElementById('pkg-input').value=''; document.getElementById('pkg-results').innerHTML='<div class="empty">Enter a Package ID to search</div>'; }
@@ -1399,185 +1396,6 @@ async function changePassword(id, username, newPwd) {
   } catch(e) { showToast('Error changing password'); }
 }
 
-function generatePackageReport() {
-  if (typeof ExcelJS === 'undefined') { showToast('Excel library not loaded. Try again.'); return; }
-  var pkgVal  = document.getElementById('pkg-report-pkg').value;
-  var wellNum = document.getElementById('pkg-report-well').value.trim();
-  var rigNum  = document.getElementById('pkg-report-rig').value.trim();
-  var data = pkgVal ? eqData.filter(function(r){ return r.package_id === pkgVal; }) : eqData.slice();
-  data = data.filter(function(r){ return (r.active||'').toLowerCase()==='yes'; });
-  if (!data.length) { showToast('No data found'); return; }
-
-  var sections = [
-    { name: 'Section 1 - CT Unit',          prefixes: ['CC','PP','WR','GK','INJ','SR','BOP'] },
-    { name: 'Section 2 - Pump Units',        prefixes: ['PU'] },
-    { name: 'Section 3 - N2 Units',          prefixes: ['45'] },
-    { name: 'Section 4 - Tool Box',          prefixes: ['TB'] },
-    { name: 'Section 5 - Iron Baskets',      prefixes: ['IB'] },
-    { name: 'Section 6 - Risers',            prefixes: ['LB','RB'] },
-    { name: 'Section 7 - Well Head X-overs', prefixes: ['XO'] }
-  ];
-
-  var today = new Date().toLocaleDateString('en-GB');
-  var pkgLabel = pkgVal || 'All Packages';
-  var totalExp=0, totalExpi=0, totalVal=0;
-  data.forEach(function(r) {
-    var s = getStatus(r.expiry_date);
-    if (s==='expired') totalExp++;
-    else if (s==='expiring') totalExpi++;
-    else totalVal++;
-  });
-
-  var wb = new ExcelJS.Workbook();
-  var ws = wb.addWorksheet('Package Report');
-
-  ws.columns = [
-    {width:16},{width:30},{width:20},{width:20},{width:14},{width:14}
-  ];
-
-  function addMergedRow(values, bgColor, fgColor, bold, size, center) {
-    var row = ws.addRow(values);
-    row.height = size > 11 ? 24 : 18;
-    row.eachCell(function(cell, cn) {
-      if (bgColor) cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bgColor}};
-      cell.font = {name:'Calibri',color:{argb:'FF'+(fgColor||'000000')},bold:!!bold,size:size||11};
-      cell.alignment = {horizontal:center?'center':'left',vertical:'middle'};
-    });
-    return row;
-  }
-
-  function mergeRow(rowNum, from, to) {
-    ws.mergeCells(rowNum, from, rowNum, to);
-  }
-
-  // ── Header ──────────────────────────────────────────────────
-  var r1 = addMergedRow(['NESR - Equipment Inspection Report','','','','',''], '1F3864','FFFFFF',true,13,true);
-  mergeRow(r1.number,1,6);
-
-  var r2 = ws.addRow(['Package:', pkgLabel, 'Well:', wellNum||'-', 'Rig:', rigNum||'-']);
-  r2.height = 18;
-  r2.eachCell(function(cell,cn) {
-    cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFEBF2FF'}};
-    cell.font = {name:'Calibri',color:{argb:'FF0C447C'},bold:(cn===1||cn===3||cn===5),size:11};
-    cell.alignment = {horizontal:'left',vertical:'middle'};
-  });
-
-  var r3 = ws.addRow(['Date:', today,'','','','']);
-  r3.height = 18;
-  r3.eachCell(function(cell,cn) {
-    cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFEBF2FF'}};
-    cell.font = {name:'Calibri',color:{argb:'FF0C447C'},bold:(cn===1),size:11};
-  });
-
-  ws.addRow([]);
-
-  // ── Summary ─────────────────────────────────────────────────
-  var rSum = addMergedRow(['SUMMARY','','','','',''],'2E75B6','FFFFFF',true,12,true);
-  mergeRow(rSum.number,1,6);
-
-  var rSumH = ws.addRow(['Total Equipment','Expired','Expiring (30d)','Valid','','']);
-  rSumH.height = 18;
-  rSumH.eachCell(function(cell,cn) {
-    if (cn<=4) {
-      cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FF2E75B6'}};
-      cell.font = {name:'Calibri',color:{argb:'FFFFFFFF'},bold:true,size:11};
-      cell.alignment = {horizontal:'center',vertical:'middle'};
-    }
-  });
-
-  var rSumV = ws.addRow([data.length, totalExp, totalExpi, totalVal,'','']);
-  rSumV.height = 22;
-  var sumColors = ['FF1F3864','FFC00000','FFED7D31','FF00B050'];
-  rSumV.eachCell(function(cell,cn) {
-    if (cn<=4) {
-      cell.font = {name:'Calibri',color:{argb:sumColors[cn-1]},bold:true,size:13};
-      cell.alignment = {horizontal:'center',vertical:'middle'};
-    }
-  });
-
-  ws.addRow([]);
-
-  // ── Sections ─────────────────────────────────────────────────
-  var sectionColors = ['1F3864','2E75B6','0F6E56','854F0B','185FA5','993C1D','534AB7'];
-  var sIdx = 0;
-
-  function addSection(name, secData) {
-    var color = sectionColors[sIdx % sectionColors.length];
-    sIdx++;
-
-    var rSec = addMergedRow([name,'','','','',''],color,'FFFFFF',true,11,true);
-    mergeRow(rSec.number,1,6);
-
-    var rCols = ws.addRow(['Unit Number','Equipment','Serial Number','Inspection Type','Expiry Date','Status']);
-    rCols.height = 18;
-    rCols.eachCell(function(cell) {
-      cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFEBF2FF'}};
-      cell.font = {name:'Calibri',color:{argb:'FF'+color},bold:true,size:10};
-      cell.alignment = {horizontal:'center',vertical:'middle'};
-      cell.border = {bottom:{style:'thin',color:{argb:'FF'+color}}};
-    });
-
-    secData.sort(function(a,b){
-      var o={expired:0,expiring:1,watch:2,valid:3,unknown:4};
-      return (o[getStatus(a.expiry_date)]||4)-(o[getStatus(b.expiry_date)]||4);
-    });
-
-    var grouped = {};
-    secData.forEach(function(r){ if(!grouped[r.unit_number]) grouped[r.unit_number]=[]; grouped[r.unit_number].push(r); });
-
-    Object.keys(grouped).sort().forEach(function(unit) {
-      grouped[unit].forEach(function(item) {
-        var s = getStatus(item.expiry_date);
-        var sl = statusLabel(s);
-        var expDate = item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('en-GB') : '';
-        var rData = ws.addRow([item.unit_number, item.equipment||'', item.serial_number||'', item.inspection_type||'', expDate, sl]);
-        rData.height = 16;
-        var bgColor = s==='expired' ? 'FFEBEB' : s==='expiring' ? 'FFF3EB' : s==='watch' ? 'FFFBEB' : 'FFFFFF';
-        var statusColor = s==='expired' ? 'C00000' : s==='expiring' ? 'ED7D31' : s==='watch' ? '7a5800' : '00B050';
-        rData.eachCell(function(cell,cn) {
-          cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bgColor}};
-          cell.font = {name:'Calibri',color:{argb:'FF'+(cn===6?statusColor:'333333')},bold:(cn===6),size:10};
-          cell.alignment = {horizontal:'left',vertical:'middle'};
-        });
-      });
-    });
-    ws.addRow([]);
-  }
-
-  sections.forEach(function(sec) {
-    var secData = data.filter(function(r){
-      return sec.prefixes.some(function(p){ return r.unit_number.toUpperCase().startsWith(p); });
-    });
-    if (secData.length) addSection(sec.name, secData);
-  });
-
-  var uncategorized = data.filter(function(r){
-    return !sections.some(function(sec){
-      return sec.prefixes.some(function(p){ return r.unit_number.toUpperCase().startsWith(p); });
-    });
-  });
-  if (uncategorized.length) addSection('Other Equipment', uncategorized);
-
-  // ── Footer ───────────────────────────────────────────────────
-  var rFoot = addMergedRow(['Generated by NESR DWO Equipment Inspection System','','','','',''],null,'888888',false,10,true);
-  mergeRow(rFoot.number,1,6);
-
-  // ── Download ─────────────────────────────────────────────────
-  wb.xlsx.writeBuffer().then(function(buffer) {
-    var blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'PackageReport_' + pkgLabel + '_' + today.split('/').join('-') + '.xlsx';
-    a.click();
-    URL.revokeObjectURL(url);
-    closeReport();
-    showToast('Package Report downloaded!');
-  }).catch(function(e) {
-    showToast('Error generating report');
-    console.error(e);
-  });
-}
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
@@ -1738,19 +1556,10 @@ function selectReport(type, value) {
     document.getElementById('report-insp-section').style.display='none';
     document.getElementById('report-sub-section').style.display='none';
     document.getElementById('report-active-section').style.display='none';
-    document.getElementById('report-filter-section').style.display='none';
-    document.getElementById('pkg-report-section').style.display='none';
     reportActiveFilter = 'all';
     ['ract-all','ract-yes','ract-no'].forEach(id => { const el=document.getElementById(id); if(el){el.classList.remove('selected');} });
     const ractAll = document.getElementById('ract-all'); if(ractAll) ractAll.classList.add('selected');
     document.querySelectorAll('[id^="ropt-"]').forEach(b=>b.classList.remove('selected'));
-    if (value === 'package_report') {
-      document.getElementById('ropt-pkg').classList.add('selected');
-      const pkgs = [...new Set(eqData.map(r=>r.package_id).filter(Boolean))].sort();
-      document.getElementById('pkg-report-pkg').innerHTML = '<option value="">All Packages</option>'+pkgs.map(p=>`<option value="${p}">${p}</option>`).join('');
-      document.getElementById('pkg-report-section').style.display='block';
-      return;
-    }
     const btnId = value==='equipment' ? 'ropt-eq' : value==='sling_mpi' ? 'ropt-sl' : 'ropt-both';
     document.getElementById(btnId).classList.add('selected');
     document.getElementById('report-filter-section').style.display='block';
@@ -1867,7 +1676,6 @@ function generateReport() {
   showToast('✓ Report downloaded!');
 }
 </script>
-
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
 </html>
