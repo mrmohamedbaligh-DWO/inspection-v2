@@ -7,56 +7,71 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   :root {
-    --navy: #0F172A; --blue: #1E40AF; --blue-light: #EFF6FF;
-    --red: #DC2626; --red-light: #FFF1F1;
-    --orange: #D97706; --orange-light: #FEF3C7;
-    --green: #16A34A; --green-light: #F0FDF4;
-    --border: #E2E8F0; --text: #0F172A; --muted: #64748B;
-    --gray-light: #F8FAFC;
-    --card-bg: #FFFFFF;
-    --app-bg: #F0F4F8;
-    --header-bg: #0F172A;
-    --header-sub-bg: #1E293B;
-    --tab-pill-bg: #1E293B;
-    --tab-active: #1E40AF;
-    --unit-header: #0F172A;
-    --kpi-dark: #0F172A;
+    --navy: #1e3a5f; --blue: #0284c7; --blue-light: #e0f2fe;
+    --red: #dc2626; --red-light: #fee2e2;
+    --orange: #d97706; --orange-light: #fef3c7;
+    --green: #16a34a; --green-light: #dcfce7;
+    --border: #e6ebf1; --text: #0f172a; --muted: #5b6675; --faint: #94a3b8;
+    --gray-light: #f6f8fb;
+    --card-bg: #ffffff; --app-bg: #eef1f6;
+    --header-bg: #0f172a; --tab-pill-bg: rgba(0,0,0,0.25);
+    --tab-active: #1e40af; --unit-header: #0f172a;
+    --row-border: #f1f5f9; --kpi-bar-exp: #fee2e2; --kpi-bar-expi: #fef3c7; --kpi-bar-val: #dcfce7;
   }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--app-bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; transition: background 0.3s, color 0.3s; }
+  body.dark {
+    --navy: #1e40af; --blue: #38bdf8; --blue-light: #0c2d4a;
+    --red: #f87171; --red-light: rgba(248,113,113,0.12);
+    --orange: #fbbf24; --orange-light: rgba(251,191,36,0.1);
+    --green: #34d399; --green-light: rgba(52,211,153,0.12);
+    --border: #222834; --text: #eef1f6; --muted: #8b93a3; --faint: #5b6373;
+    --gray-light: #10131a;
+    --card-bg: #141821; --app-bg: #0a0c10;
+    --header-bg: #060912; --tab-pill-bg: rgba(0,0,0,0.5);
+    --tab-active: #1e40af; --unit-header: #060912;
+    --row-border: #1e2535; --kpi-bar-exp: rgba(248,113,113,0.2); --kpi-bar-expi: rgba(251,191,36,0.2); --kpi-bar-val: rgba(52,211,153,0.2);
+  }
+  body.dark .search-input { color: #eef1f6; background: #10131a; }
+  body.dark .form-input, body.dark .form-select { background: #10131a; color: #eef1f6; border-color: #222834; }
+  body.dark .modal { background: #141821; }
+  body.dark .modal-input { background: #10131a; border-color: #222834; color: #eef1f6; }
+  body.dark .modal-overlay { background: rgba(0,0,0,0.75); }
+  body.dark .report-box { background: #141821; }
+  body.dark .report-option { border-color: #222834; color: #8b93a3; background: #141821; }
+  body.dark .report-option.selected { border-color: #38bdf8; background: #0c2d4a; color: #7dd3fc; }
+  body.dark .filter-btn { background: #141821; border-color: #222834; color: #5b6373; }
+  body.dark .filter-btn.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+  body.dark .btn-cancel { background: #10131a; color: #8b93a3; border-color: #222834; }
+  body.dark .sheet-btn { background: #10131a; color: #5b6373; border-color: #222834; }
+  body.dark .sheet-btn.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+  body.dark .search-box { background: #141821; border-color: #222834; }
+  body.dark .equip-row { background: #141821; border-color: #1e2535; }
+  body.dark .equip-row:active { background: #10131a; }
+  body.dark .login-input { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
+  body.dark .kpi-card { box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+  body.dark .result-card { box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+  body.dark #login-screen { background: #060912; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--app-bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; transition: background 0.25s, color 0.25s; }
   @media (min-width: 768px) {
     body { max-width: 100%; }
-    .header { max-width: 100%; }
-    .tab-content { max-width: 100%; }
     .kpi-grid { grid-template-columns: repeat(4, 1fr); max-width: 1200px; margin: 0 auto; }
-    .kpi-section-label { max-width: 1200px; margin-left: auto; margin-right: auto; }
-    .search-section { max-width: 1200px; margin: 0 auto; }
-    .results-area { max-width: 1200px; margin: 0 auto; }
-    .eq-charts-section-wrapper, #eq-charts-section, #sl-charts-section { max-width: 1200px; margin: 0 auto; }
-    #eq-accordion, #sl-accordion { max-width: 1200px; margin: 0 auto; }
-    #inactive-kpi-section { max-width: 1200px; margin: 0 auto; padding: 0 12px 8px; }
+    .kpi-section-label, .search-section, .results-area { max-width: 1200px; margin-left: auto; margin-right: auto; }
+    #eq-charts-section, #sl-charts-section, #eq-accordion, #sl-accordion, #inactive-kpi-section { max-width: 1200px; margin-left: auto; margin-right: auto; }
     .modal { max-width: 500px; border-radius: 16px; margin: auto; }
     .modal-overlay { align-items: center; }
     .report-box { max-width: 500px; border-radius: 16px; margin: auto; }
     .report-modal { align-items: center; }
-    .header-top { padding: 0 24px; }
-    .tabs { padding: 0 12px; }
-    .login-box { max-width: 360px; }
-    #login-screen { background: var(--navy); }
-    .result-card { margin-bottom: 10px; }
-  }
-  @media (min-width: 1200px) {
-    .kpi-grid { grid-template-columns: repeat(4, 1fr); }
-    .result-card { display: inline-block; width: calc(50% - 8px); vertical-align: top; margin-right: 8px; }
+    .header-top { max-width: 1200px; margin: 0 auto; }
+    .tabs { max-width: 1200px; margin-left: auto; margin-right: auto; }
   }
 
-  .header { background: var(--header-bg); padding: 14px 14px 0; position: sticky; top: 0; z-index: 100; width: 100%; }
+  .header { background: var(--header-bg); padding: 14px 16px 0; position: sticky; top: 0; z-index: 100; width: 100%; }
   .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .header-title { color: #fff; font-size: 17px; font-weight: 600; }
   .header-date { color: #BDD7EE; font-size: 11px; margin-top: 2px; }
   .tabs { display: flex; overflow-x: auto; scrollbar-width: none; background: var(--tab-pill-bg); border-radius: 10px; padding: 3px; margin: 10px 0 0; gap: 2px; }
   .tabs::-webkit-scrollbar { display: none; }
-  .tab { padding: 6px 10px; font-size: 10px; color: var(--tab-inactive,rgba(255,255,255,0.35)); cursor: pointer; white-space: nowrap; flex-shrink: 0; border-radius: 7px; transition: all 0.2s; }
-  .tab.active { color: #fff; font-weight: 600; background: var(--tab-active); }
+  .tab { padding: 6px 10px; font-size: 10px; color: rgba(255,255,255,0.45); cursor: pointer; white-space: nowrap; flex-shrink: 0; border-radius: 7px; transition: all 0.2s; }
+  .tab.active { color: #fff; font-weight: 600; background: var(--tab-active); backdrop-filter: blur(4px); }
   .tab-content { display: none; padding-bottom: 24px; }
   .tab-content.active { display: block; }
 
@@ -69,17 +84,19 @@
   .kpi-card.active-card.kpi-valid { box-shadow: 0 0 0 2px var(--green); }
   .accordion-content { display: none; padding: 0 12px 8px; }
   .accordion-content.open { display: block; }
-  .kpi-card { background: var(--card-bg); border-radius: 12px; padding: 12px; border: 0.5px solid var(--border); cursor: pointer; transition: all 0.2s; }
-  .kpi-card:active { opacity: 0.85; transform: scale(0.98); }
+  .kpi-card { background: var(--card-bg); border-radius: 14px; padding: 12px; border: 1px solid var(--border); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+  .kpi-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .kpi-card:active { transform: scale(0.97); }
   .kpi-label { font-size: 9px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.6px; }
   .kpi-value { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
-  .kpi-tap { font-size: 9px; color: #bbb; }
+  .kpi-tap { font-size: 9px; color: var(--muted); }
   .kpi-bar { height: 3px; border-radius: 2px; overflow: hidden; margin-bottom: 4px; }
-  .kpi-bar-fill { height: 100%; border-radius: 2px; }
-  .kpi-expired { } .kpi-expired .kpi-value { color: var(--red); }
-  .kpi-expiring { } .kpi-expiring .kpi-value { color: var(--orange); }
-  .kpi-valid { } .kpi-valid .kpi-value { color: var(--green); }
-  .kpi-active { background: var(--kpi-dark); border-color: #1E293B; } .kpi-active .kpi-value { color: #F1F5F9; } .kpi-active .kpi-label { color: #334155; } .kpi-active .kpi-tap { color: #334155; }
+  .kpi-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+  .kpi-dot { width: 8px; height: 8px; border-radius: 50%; float: right; margin-top: 4px; }
+  .kpi-expired .kpi-value { color: var(--red); } .kpi-expired .kpi-dot { background: var(--red); }
+  .kpi-expiring .kpi-value { color: var(--orange); } .kpi-expiring .kpi-dot { background: var(--orange); }
+  .kpi-valid .kpi-value { color: var(--green); } .kpi-valid .kpi-dot { background: var(--green); }
+  .kpi-active .kpi-value { color: var(--navy); } .kpi-active .kpi-dot { background: var(--navy); }
 
   .search-section { padding: 12px 12px 0; }
   .search-box { background: var(--card-bg); border-radius: 14px; padding: 14px; margin-bottom: 10px; border: 0.5px solid var(--border); }
@@ -94,11 +111,11 @@
   .results-area { padding: 10px 12px 0; }
   .section-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
   .result-card { background: var(--card-bg); border-radius: 14px; overflow: hidden; margin-bottom: 10px; border: 0.5px solid var(--border); }
-  .result-card-header { padding: 10px 13px; display: flex; justify-content: space-between; align-items: center; background: var(--unit-header); }
+  .result-card-header { padding: 10px 13px; display: flex; justify-content: space-between; align-items: center; transition: background 0.25s; }
   .rch-name { font-size: 12px; font-weight: 600; color: #F1F5F9; }
-  .rch-sub { font-size: 10px; color: #60A5FA; margin-top: 2px; }
+  .rch-sub { font-size: 10px; color: #93C5FD; margin-top: 2px; }
   .rch-badge { font-size: 10px; padding: 3px 8px; border-radius: 8px; font-weight: 600; white-space: nowrap; }
-  .equip-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 13px; border-bottom: 0.5px solid var(--border); cursor: pointer; background: var(--card-bg); transition: background 0.15s; }
+  .equip-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 13px; border-bottom: 0.5px solid var(--row-border,#F1F5F9); cursor: pointer; background: var(--card-bg); transition: background 0.15s; }
   .equip-row:last-child { border-bottom: none; }
   .equip-row:active { background: var(--gray-light); }
   .eq-name { font-size: 12px; font-weight: 500; }
@@ -166,38 +183,13 @@
   .report-option { padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
   .report-option:active { background: var(--blue-light); }
   .report-option.selected { border-color: var(--navy); background: var(--blue-light); color: var(--navy); }
-
-  body.dark {
-    --navy: #060912; --blue: #3B82F6; --blue-light: #1E3A5F;
-    --red: #EF4444; --red-light: #1A0A0A;
-    --orange: #F59E0B; --orange-light: #1C1000;
-    --green: #22C55E; --green-light: #052E16;
-    --border: #1E293B; --text: #F1F5F9; --muted: #64748B;
-    --gray-light: #1E293B;
-    --card-bg: #141824;
-    --app-bg: #0A0E1A;
-    --header-bg: #060912;
-    --header-sub-bg: #0D1222;
-    --tab-pill-bg: #0D1222;
-    --tab-active: #1E40AF;
-    --unit-header: #060912;
-    --kpi-dark: #060912;
-  }
-  body.dark .search-input { color: #F1F5F9; background: #1E293B; }
-  body.dark .form-input, body.dark .form-select { background: #1E293B; color: #F1F5F9; }
-  body.dark .modal { background: #141824; }
-  body.dark .modal-input { background: #1E293B; border-color: #334155; color: #F1F5F9; }
-  body.dark .report-box { background: #141824; }
-  body.dark .report-option { border-color: #1E293B; color: #94A3B8; }
-  body.dark .report-option.selected { border-color: #3B82F6; background: #1E3A5F; color: #93C5FD; }
-  body.dark .audit-row { border-color: #1E293B; }
-  body.dark .filter-btn { background: #141824; border-color: #1E293B; color: #64748B; }
-  body.dark .filter-btn.active { background: #1E40AF; color: #fff; }
-  body.dark .btn-cancel { background: #1E293B; color: #94A3B8; border-color: #334155; }
-  body.dark .sheet-btn { background: #1E293B; color: #64748B; border-color: #334155; }
-  body.dark .sheet-btn.active { background: #1E40AF; color: #fff; border-color: #1E40AF; }
-  .dark-toggle { position: fixed; bottom: 20px; right: 16px; z-index: 999; width: 44px; height: 44px; border-radius: 50%; background: var(--card-bg); border: 0.5px solid var(--border); cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s; }
-  .dark-toggle:active { transform: scale(0.92); }
+  .dark-toggle { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 14px; color: #fff; font-family: inherit; transition: all 0.2s; width: 36px; height: 30px; display: flex; align-items: center; justify-content: center; }
+  .dark-toggle:hover { background: rgba(255,255,255,0.2); }
+  .dark-toggle:active { opacity: 0.8; }
+  .chart-card { background: var(--card-bg); border-radius: 14px; padding: 12px; margin-bottom: 8px; border: 1px solid var(--border); transition: background 0.25s, border-color 0.25s; }
+  .chart-title { font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+  .chart-total { font-size: 14px; font-weight: 700; color: var(--navy); line-height: 1; }
+  .chart-total-sub { font-size: 9px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -229,6 +221,7 @@
     <div id="header-user-box" style="display:none;align-items:center;gap:6px;">
       <span id="header-user" style="color:#BDD7EE;font-size:12px;font-weight:500;"></span>
       <button id="report-btn" onclick="openReport()" style="display:none;background:var(--green);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">📊 Report</button>
+      <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()">🌙</button>
       <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;">Logout</button>
     </div>
   </div>
@@ -250,24 +243,28 @@
   <div class="kpi-section-label">Equipment Sheet</div>
   <div class="kpi-grid">
     <div class="kpi-card kpi-expired" onclick="filterDash('expired','eq')">
+      <div class="kpi-dot"></div>
       <div class="kpi-value" id="eq-expired">—</div>
       <div class="kpi-label">Expired</div>
-      <div class="kpi-bar" style="background:#FEE2E2;"><div class="kpi-bar-fill" id="bar-expired" style="background:var(--red);width:0%;"></div></div>
+      <div class="kpi-bar" style="background:var(--kpi-bar-exp);"><div class="kpi-bar-fill" id="bar-expired" style="background:var(--red);width:0%;"></div></div>
       <div class="kpi-tap">tap to expand ›</div>
     </div>
     <div class="kpi-card kpi-expiring" onclick="filterDash('expiring','eq')">
+      <div class="kpi-dot"></div>
       <div class="kpi-value" id="eq-expiring">—</div>
       <div class="kpi-label">Expiring (30d)</div>
-      <div class="kpi-bar" style="background:#FEF3C7;"><div class="kpi-bar-fill" id="bar-expiring" style="background:var(--orange);width:0%;"></div></div>
+      <div class="kpi-bar" style="background:var(--kpi-bar-expi);"><div class="kpi-bar-fill" id="bar-expiring" style="background:var(--orange);width:0%;"></div></div>
       <div class="kpi-tap">tap to expand ›</div>
     </div>
     <div class="kpi-card kpi-valid" onclick="filterDash('valid','eq')">
+      <div class="kpi-dot"></div>
       <div class="kpi-value" id="eq-valid">—</div>
       <div class="kpi-label">Valid</div>
-      <div class="kpi-bar" style="background:#DCFCE7;"><div class="kpi-bar-fill" id="bar-valid" style="background:var(--green);width:0%;"></div></div>
+      <div class="kpi-bar" style="background:var(--kpi-bar-val);"><div class="kpi-bar-fill" id="bar-valid" style="background:var(--green);width:0%;"></div></div>
       <div class="kpi-tap">tap to expand ›</div>
     </div>
     <div class="kpi-card kpi-active" onclick="filterDash('active','eq')">
+      <div class="kpi-dot"></div>
       <div class="kpi-value" id="eq-active">—</div>
       <div class="kpi-label">Active Units</div>
       <div class="kpi-tap" id="eq-active-sub">of — units</div>
@@ -283,21 +280,21 @@
 
   <!-- Equipment Charts -->
   <div style="padding:0 12px 8px;" id="eq-charts-section" style="display:none;">
-    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #EBEBEB;">
-      <div style="font-size:12px;font-weight:600;color:#1F3864;margin-bottom:10px;">Equipment Status Overview</div>
+    <div class="chart-card">
+      <div class="chart-title">Equipment Status Overview</div>
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="position:relative;width:90px;height:90px;flex-shrink:0;">
           <canvas id="donut-chart" width="90" height="90"></canvas>
           <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
-            <div id="donut-total" style="font-size:14px;font-weight:700;color:#1F3864;line-height:1;">—</div>
-            <div style="font-size:9px;color:#888;">total</div>
+            <div id="donut-total" class="chart-total">—</div>
+            <div class="chart-total-sub">total</div>
           </div>
         </div>
         <div style="flex:1;" id="donut-legend"></div>
       </div>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #EBEBEB;">
-      <div style="font-size:12px;font-weight:600;color:#1F3864;margin-bottom:10px;">Expired by Package ID</div>
+    <div class="chart-card">
+      <div class="chart-title">Expired by Package ID</div>
       <div id="pkg-bar-chart"></div>
     </div>
   </div>
@@ -313,21 +310,21 @@
 
   <!-- Sling Charts -->
   <div style="padding:0 12px 8px;" id="sl-charts-section" style="display:none;">
-    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #EBEBEB;">
-      <div style="font-size:12px;font-weight:600;color:#2E75B6;margin-bottom:10px;">Sling/MPI Status Overview</div>
+    <div class="chart-card">
+      <div class="chart-title" style="color:var(--blue);">Sling/MPI Status Overview</div>
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="position:relative;width:90px;height:90px;flex-shrink:0;">
           <canvas id="sl-donut-chart" width="90" height="90"></canvas>
           <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
-            <div id="sl-donut-total" style="font-size:14px;font-weight:700;color:#2E75B6;line-height:1;">—</div>
-            <div style="font-size:9px;color:#888;">total</div>
+            <div id="sl-donut-total" class="chart-total" style="color:var(--blue);">—</div>
+            <div class="chart-total-sub">total</div>
           </div>
         </div>
         <div style="flex:1;" id="sl-donut-legend"></div>
       </div>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #EBEBEB;">
-      <div style="font-size:12px;font-weight:600;color:#2E75B6;margin-bottom:10px;">Expired by Location</div>
+    <div class="chart-card">
+      <div class="chart-title" style="color:var(--blue);">Expired by Location</div>
       <div id="sl-bar-chart"></div>
     </div>
   </div>
@@ -816,22 +813,22 @@ function renderCharts() {
   // Legend
   document.getElementById('donut-legend').innerHTML = `
     <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
-        <div style="width:10px;height:10px;border-radius:2px;background:#00B050;flex-shrink:0;"></div>Valid
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);">
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--green);flex-shrink:0;"></div>Valid
       </div>
-      <span style="font-size:11px;font-weight:600;color:#00B050;">${Math.round(valid/total*100)}%</span>
+      <span style="font-size:11px;font-weight:600;color:var(--green);">${Math.round(valid/total*100)}%</span>
     </div>
     <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
-        <div style="width:10px;height:10px;border-radius:2px;background:#C00000;flex-shrink:0;"></div>Expired
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);">
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--red);flex-shrink:0;"></div>Expired
       </div>
-      <span style="font-size:11px;font-weight:600;color:#C00000;">${Math.round(expired/total*100)}%</span>
+      <span style="font-size:11px;font-weight:600;color:var(--red);">${Math.round(expired/total*100)}%</span>
     </div>
     <div style="display:flex;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
-        <div style="width:10px;height:10px;border-radius:2px;background:#ED7D31;flex-shrink:0;"></div>Expiring
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);">
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--orange);flex-shrink:0;"></div>Expiring
       </div>
-      <span style="font-size:11px;font-weight:600;color:#ED7D31;">${Math.round(expiring/total*100)}%</span>
+      <span style="font-size:11px;font-weight:600;color:var(--orange);">${Math.round(expiring/total*100)}%</span>
     </div>`;
 
   const ctx = document.getElementById('donut-chart').getContext('2d');
@@ -872,11 +869,11 @@ function renderCharts() {
   } else {
     document.getElementById('pkg-bar-chart').innerHTML = sorted.map(([pkg, count]) => `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <div style="font-size:10px;color:#888;width:55px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${pkg}">${pkg}</div>
-        <div style="flex:1;height:16px;background:#f5f5f5;border-radius:4px;overflow:hidden;">
-          <div style="height:100%;background:#C00000;border-radius:4px;width:${Math.round(count/maxVal*100)}%;transition:width 0.5s;"></div>
+        <div style="font-size:10px;color:var(--muted);width:55px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${pkg}">${pkg}</div>
+        <div style="flex:1;height:16px;background:var(--kpi-bar-exp);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;background:var(--red);border-radius:4px;width:${Math.round(count/maxVal*100)}%;transition:width 0.5s;"></div>
         </div>
-        <div style="font-size:10px;font-weight:600;color:#C00000;width:22px;">${count}</div>
+        <div style="font-size:10px;font-weight:600;color:var(--red);width:22px;">${count}</div>
       </div>`).join('');
   }
 
@@ -896,22 +893,22 @@ function renderCharts() {
 
   document.getElementById('sl-donut-legend').innerHTML = `
     <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
-        <div style="width:10px;height:10px;border-radius:2px;background:#00B050;flex-shrink:0;"></div>Valid
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);">
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--green);flex-shrink:0;"></div>Valid
       </div>
-      <span style="font-size:11px;font-weight:600;color:#00B050;">${slTotal?Math.round(slVal/slTotal*100):0}%</span>
+      <span style="font-size:11px;font-weight:600;color:var(--green);">${slTotal?Math.round(slVal/slTotal*100):0}%</span>
     </div>
     <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
-        <div style="width:10px;height:10px;border-radius:2px;background:#C00000;flex-shrink:0;"></div>Expired
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);">
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--red);flex-shrink:0;"></div>Expired
       </div>
-      <span style="font-size:11px;font-weight:600;color:#C00000;">${slTotal?Math.round(slExp/slTotal*100):0}%</span>
+      <span style="font-size:11px;font-weight:600;color:var(--red);">${slTotal?Math.round(slExp/slTotal*100):0}%</span>
     </div>
     <div style="display:flex;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#555;">
-        <div style="width:10px;height:10px;border-radius:2px;background:#ED7D31;flex-shrink:0;"></div>Expiring
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);">
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--orange);flex-shrink:0;"></div>Expiring
       </div>
-      <span style="font-size:11px;font-weight:600;color:#ED7D31;">${slTotal?Math.round(slExpi/slTotal*100):0}%</span>
+      <span style="font-size:11px;font-weight:600;color:var(--orange);">${slTotal?Math.round(slExpi/slTotal*100):0}%</span>
     </div>`;
 
   const slCtx = document.getElementById('sl-donut-chart').getContext('2d');
@@ -944,11 +941,11 @@ function renderCharts() {
   } else {
     document.getElementById('sl-bar-chart').innerHTML = slSorted.map(([loc, count]) => `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <div style="font-size:10px;color:#888;width:55px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${loc}</div>
-        <div style="flex:1;height:16px;background:#f5f5f5;border-radius:4px;overflow:hidden;">
-          <div style="height:100%;background:#2E75B6;border-radius:4px;width:${Math.round(count/slMax*100)}%;"></div>
+        <div style="font-size:10px;color:var(--muted);width:55px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${loc}</div>
+        <div style="flex:1;height:16px;background:var(--blue-light);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;background:var(--blue);border-radius:4px;width:${Math.round(count/slMax*100)}%;"></div>
         </div>
-        <div style="font-size:10px;font-weight:600;color:#2E75B6;width:22px;">${count}</div>
+        <div style="font-size:10px;font-weight:600;color:var(--blue);width:22px;">${count}</div>
       </div>`).join('');
   }
 }
@@ -976,14 +973,14 @@ function updateKPIs() {
   document.getElementById('eq-active-sub').textContent = `of ${units.size} units`;
   const inactEl = document.getElementById('eq-inactive');
   if (inactEl) inactEl.textContent = inactiveU.size;
-  const total = exp + expi + val;
-  if (total > 0) {
-    const bExp = document.getElementById('bar-expired');
-    const bExpi = document.getElementById('bar-expiring');
-    const bVal = document.getElementById('bar-valid');
-    if (bExp) bExp.style.width = Math.round(exp/total*100)+'%';
-    if (bExpi) bExpi.style.width = Math.round(expi/total*100)+'%';
-    if (bVal) bVal.style.width = Math.round(val/total*100)+'%';
+  const tot = exp + expi + val;
+  if (tot > 0) {
+    const bE = document.getElementById('bar-expired');
+    const bX = document.getElementById('bar-expiring');
+    const bV = document.getElementById('bar-valid');
+    if (bE) bE.style.width = Math.round(exp/tot*100)+'%';
+    if (bX) bX.style.width = Math.round(expi/tot*100)+'%';
+    if (bV) bV.style.width = Math.round(val/tot*100)+'%';
   }
 
   let sExp=0,sExpi=0,sVal=0;
@@ -1401,20 +1398,18 @@ async function loadUsers() {
       const roleBg = u.role === 'Admin' ? 'var(--blue-light)' : 'var(--gray-light)';
       const pwdId = 'pwd_' + u.id;
       html += `<div style="padding:12px 0;border-bottom:0.5px solid var(--border);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <div>
             <div style="font-size:13px;font-weight:600;color:var(--text);">${u.username}</div>
             <span style="font-size:10px;padding:2px 8px;border-radius:6px;background:${roleBg};color:${roleColor};font-weight:500;">${u.role}</span>
           </div>
           <div style="display:flex;gap:5px;">
-            <button onclick="toggleShowPwd('${pwdId}')" style="background:var(--gray-light);color:var(--muted);border:none;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit;">👁 Show</button>
-            <button onclick="openChangePassword('${u.id}','${u.username}')" style="background:var(--blue-light);color:var(--blue);border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🔑 Change</button>
+            <button onclick="toggleShowPwd('${pwdId}')" style="background:var(--gray-light);color:var(--muted);border:none;border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer;font-family:inherit;">👁</button>
+            <button onclick="openChangePassword('${u.id}','${u.username}')" style="background:var(--blue-light);color:var(--blue);border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🔑</button>
             ${u.username !== currentUser ? `<button onclick="deleteUser('${u.id}','${u.username}')" style="background:var(--red-light);color:var(--red);border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🗑</button>` : ''}
           </div>
         </div>
-        <div id="${pwdId}" style="display:none;background:var(--gray-light);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);font-family:monospace;">
-          ${u.password||'—'}
-        </div>
+        <div id="${pwdId}" style="display:none;background:var(--gray-light);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);font-family:monospace;letter-spacing:0.5px;">${u.password||'—'}</div>
       </div>`;
     });
     document.getElementById('users-list').innerHTML = html;
@@ -1423,9 +1418,7 @@ async function loadUsers() {
 
 function toggleShowPwd(id) {
   const el = document.getElementById(id);
-  if (!el) return;
-  const isHidden = el.style.display === 'none';
-  el.style.display = isHidden ? 'block' : 'none';
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 async function addUser() {
@@ -1441,17 +1434,21 @@ async function addUser() {
 
     const addRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
       method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
       body: JSON.stringify({username, password, role})
     });
-    if (!addRes.ok) throw new Error('Add failed');
+    if (!addRes.ok) {
+      const errText = await addRes.text();
+      console.error('Add user error:', errText);
+      throw new Error('Failed: ' + errText);
+    }
     await apiPost('audit_log', {username: currentUser, action: 'Add User', sheet: 'system', details: `New user: ${username} | Role: ${role}`});
 
     document.getElementById('nu-username').value = '';
     document.getElementById('nu-password').value = '';
     showToast(`✓ User "${username}" added!`);
     loadUsers();
-  } catch(e) { showToast('Error adding user'); }
+  } catch(e) { console.error(e); showToast('Error: ' + e.message); }
 }
 
 async function deleteUser(id, username) {
@@ -1478,10 +1475,14 @@ async function changePassword(id, username, newPwd) {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${id}`, {
       method: 'PATCH',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
       body: JSON.stringify({password: newPwd})
     });
-    if (!res.ok) throw new Error('Failed');
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Change password error:', errText);
+      throw new Error('Failed');
+    }
     await apiPost('audit_log', {username: currentUser, action: 'Change Password', sheet: 'system', details: `Changed password for: ${username}`});
     showToast(`✓ Password updated for "${username}"`);
     loadUsers();
@@ -1490,8 +1491,10 @@ async function changePassword(id, username, newPwd) {
 
 function toggleDark() {
   var isDark = document.body.classList.toggle('dark');
-  document.getElementById('dark-toggle').textContent = isDark ? '☀️' : '🌙';
+  var btn = document.getElementById('dark-toggle');
+  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
   localStorage.setItem('darkMode', isDark ? '1' : '0');
+  if (eqData.length) renderCharts();
 }
 
 window.addEventListener('DOMContentLoaded', function() {
@@ -1783,6 +1786,6 @@ function generateReport() {
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="Toggle Dark Mode">🌙</button>
+
 </body>
 </html>
