@@ -1096,8 +1096,37 @@ async function searchUnit() {
   if (!q) return;
   const area = document.getElementById('unit-results');
   area.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  const filtered = eqData.filter(r => r.unit_number.toLowerCase().includes(q.toLowerCase()));
-  area.innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--navy)') : '<div class="empty">No results found</div>';
+
+  const qLow = q.toLowerCase();
+  const isAdmin = currentRole === 'Admin';
+
+  // Equipment filter
+  const filteredEq = eqData.filter(r => {
+    const matchQ = r.unit_number.toLowerCase().includes(qLow);
+    const isActive = (r.active||'').toLowerCase() === 'yes';
+    return matchQ && (isAdmin ? true : isActive);
+  });
+
+  // Sling/MPI filter by location matching the search query
+  const filteredSl = slData.filter(r =>
+    (r.location||'').toLowerCase().includes(qLow)
+  );
+
+  let html = '';
+
+  if (filteredEq.length) {
+    html += `<div class="section-label">${filteredEq.length} Equipment items</div>` + renderEqCards(filteredEq, 'var(--unit-header)');
+  }
+
+  if (filteredSl.length) {
+    html += `<div class="section-label" style="margin-top:8px;">Sling / MPI — ${filteredSl.length} items matching location</div>` + renderSlingCards(filteredSl);
+  }
+
+  if (!filteredEq.length && !filteredSl.length) {
+    html = '<div class="empty">No results found</div>';
+  }
+
+  area.innerHTML = html;
 }
 function clearUnit() { document.getElementById('unit-input').value=''; document.getElementById('unit-results').innerHTML='<div class="empty">Enter a unit number to search</div>'; }
 
