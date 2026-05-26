@@ -492,18 +492,30 @@
     <div class="modal-title" id="modal-title">Equipment</div>
     <div class="modal-sub" id="modal-sub">Unit — Type</div>
     <div class="modal-user" id="modal-user">Editing as: <span id="modal-username"></span></div>
+
     <div class="modal-label">Expiry Date</div>
     <input class="modal-input" type="date" id="modal-date" />
-    <div id="modal-pkg-box" style="display:none;">
-      <div class="modal-label">Package ID</div>
+
+    <!-- Equipment-only fields -->
+    <div id="modal-eq-fields" style="display:none;">
+      <div class="modal-label" style="margin-top:10px;">Inspection Type</div>
+      <input class="modal-input" type="text" id="modal-insptype" placeholder="e.g. MPI, PM-2, Calibration" />
+      <div class="modal-label" style="margin-top:10px;">Serial Number</div>
+      <input class="modal-input" type="text" id="modal-serial" placeholder="e.g. CC-726" />
+      <div class="modal-label" style="margin-top:10px;">Package ID</div>
       <input class="modal-input" type="text" id="modal-pkg" placeholder="e.g. SA, CTU-726" />
+      <div class="modal-label" style="margin-top:10px;">Remarks</div>
+      <input class="modal-input" type="text" id="modal-remarks" placeholder="Optional remarks" />
     </div>
+
+    <!-- Sling-only fields -->
     <div id="modal-loc-box" style="display:none;">
-      <div class="modal-label">Equipment / Unit Number</div>
+      <div class="modal-label" style="margin-top:10px;">Equipment / Unit Number</div>
       <input class="modal-input" type="text" id="modal-equip-unit" placeholder="e.g. INJ-726, TB-713" />
       <div class="modal-label" style="margin-top:10px;">Location (Package ID)</div>
       <input class="modal-input" type="text" id="modal-loc" placeholder="e.g. CTU-724, SA" />
     </div>
+
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
       <button class="btn-save" id="save-btn" onclick="saveItem()">Save</button>
@@ -1231,9 +1243,12 @@ function openEditEq(item) {
   document.getElementById('modal-username').textContent = currentUser;
   document.getElementById('modal-user').style.display = 'block';
   document.getElementById('modal-date').value = item.expiry_date||'';
-  document.getElementById('modal-pkg-box').style.display = 'block';
+  document.getElementById('modal-eq-fields').style.display = 'block';
   document.getElementById('modal-loc-box').style.display = 'none';
+  document.getElementById('modal-insptype').value = item.inspection_type||'';
+  document.getElementById('modal-serial').value = item.serial_number||'';
   document.getElementById('modal-pkg').value = item.package_id||'';
+  document.getElementById('modal-remarks').value = item.remarks||'';
   document.getElementById('edit-modal').classList.add('active');
 }
 function openEditSl(item) {
@@ -1252,7 +1267,7 @@ function openEditSl(item) {
 function closeModal() {
   document.getElementById('edit-modal').classList.remove('active');
   document.getElementById('modal-user').style.display = 'none';
-  document.getElementById('modal-pkg-box').style.display = 'none';
+  document.getElementById('modal-eq-fields').style.display = 'none';
   document.getElementById('modal-loc-box').style.display = 'none';
   document.getElementById('modal-equip-unit').value = '';
   currentEdit = null;
@@ -1269,10 +1284,22 @@ async function saveItem() {
     let updateData = {expiry_date: newDate};
     if (item._table==='equipment') {
       const newPkg = document.getElementById('modal-pkg').value.trim();
+      const newInsp = document.getElementById('modal-insptype').value.trim();
+      const newSerial = document.getElementById('modal-serial').value.trim();
+      const newRemarks = document.getElementById('modal-remarks').value.trim();
       if (newPkg) updateData.package_id = newPkg;
+      if (newInsp) updateData.inspection_type = newInsp;
+      if (newSerial) updateData.serial_number = newSerial;
+      updateData.remarks = newRemarks;
       await apiPatch('equipment', `id=eq.${item.id}`, updateData);
       const idx = eqData.findIndex(r=>r.id===item.id);
-      if (idx>-1) { eqData[idx].expiry_date=newDate; if (updateData.package_id) eqData[idx].package_id=updateData.package_id; }
+      if (idx>-1) {
+        eqData[idx].expiry_date = newDate;
+        if (updateData.package_id) eqData[idx].package_id = updateData.package_id;
+        if (updateData.inspection_type) eqData[idx].inspection_type = updateData.inspection_type;
+        if (updateData.serial_number) eqData[idx].serial_number = updateData.serial_number;
+        eqData[idx].remarks = newRemarks;
+      }
       updateKPIs();
     } else {
       const newLoc = document.getElementById('modal-loc').value.trim();
