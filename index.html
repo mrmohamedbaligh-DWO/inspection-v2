@@ -592,6 +592,19 @@
           <button class="report-option" id="ract-no" onclick="selectActiveFilter('no')" style="flex:1;text-align:center;">Inactive</button>
         </div>
       </div>
+      <div id="report-date-section" style="display:none;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Expiry Date Range (optional)</div>
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">From</div>
+            <input type="date" id="report-date-from" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none;" />
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">To</div>
+            <input type="date" id="report-date-to" style="width:100%;background:var(--gray-light);border:none;border-radius:9px;padding:9px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none;" />
+          </div>
+        </div>
+      </div>
       <button onclick="generateReport()" style="width:100%;background:var(--green);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">⬇️ Download Excel</button>
     </div>
 
@@ -1787,6 +1800,9 @@ function openReport() {
   document.querySelectorAll('.report-option').forEach(b=>b.classList.remove('selected'));
   document.getElementById('report-filter-section').style.display='none';
   document.getElementById('report-sub-section').style.display='none';
+  document.getElementById('report-date-section').style.display='none';
+  document.getElementById('report-date-from').value='';
+  document.getElementById('report-date-to').value='';
   document.getElementById('report-modal').classList.add('active');
 }
 function closeReport() { document.getElementById('report-modal').classList.remove('active'); }
@@ -1797,6 +1813,7 @@ function selectReport(type, value) {
     document.getElementById('report-insp-section').style.display='none';
     document.getElementById('report-sub-section').style.display='none';
     document.getElementById('report-active-section').style.display='none';
+    document.getElementById('report-date-section').style.display='none';
     reportActiveFilter = 'all';
     ['ract-all','ract-yes','ract-no'].forEach(id => { const el=document.getElementById(id); if(el){el.classList.remove('selected');} });
     const ractAll = document.getElementById('ract-all'); if(ractAll) ractAll.classList.add('selected');
@@ -1837,7 +1854,9 @@ function selectReport(type, value) {
     const map={all:'ropt-all',expired:'ropt-exp',expiring:'ropt-expi',valid:'ropt-val'};
     document.getElementById(map[value]).classList.add('selected');
     document.getElementById('report-sub-section').style.display='block';
-    document.getElementById('report-active-section').style.display='block';
+    document.getElementById('report-date-section').style.display='block';
+    // Active filter only applies to equipment (sling has no active column)
+    document.getElementById('report-active-section').style.display = (reportSheet==='sling_mpi') ? 'none' : 'block';
   }
 }
 
@@ -1851,11 +1870,21 @@ function selectActiveFilter(val) {
 function generateReport() {
   if (!reportSheet || !reportStatus) { showToast('Please select sheet and status'); return; }
   const subVal = document.getElementById('report-sub-select').value;
+  const inspVal = document.getElementById('report-insp-select').value;
+  const activeF = reportActiveFilter || 'all';
+
+  // Optional expiry date range
+  const dateFrom = document.getElementById('report-date-from').value;
+  const dateTo = document.getElementById('report-date-to').value;
+  const inRange = (d) => {
+    if (!d) return (!dateFrom && !dateTo);
+    if (dateFrom && d < dateFrom) return false;
+    if (dateTo && d > dateTo) return false;
+    return true;
+  };
 
   let data, headers, rows;
 
-  const inspVal = document.getElementById('report-insp-select').value;
-  const activeF = reportActiveFilter || 'all';
   const filterEq = (r) => {
     const s = getStatus(r.expiry_date);
     const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
@@ -1863,61 +1892,99 @@ function generateReport() {
     const inspMatch = inspVal ? (r.inspection_type||'')=== inspVal : true;
     const isActive = (r.active||'').toLowerCase()==='yes';
     const activeMatch = activeF==='all' ? true : activeF==='yes' ? isActive : !isActive;
-    return statusMatch && subMatch && inspMatch && activeMatch;
+    const dateMatch = (!dateFrom && !dateTo) ? true : inRange(r.expiry_date||'');
+    return statusMatch && subMatch && inspMatch && activeMatch && dateMatch;
   };
   const filterSl = (r) => {
     const s = getStatus(r.expiry_date);
     const statusMatch = reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
     const subMatch = subVal ? (r.location||'')=== subVal : true;
     const inspMatch = inspVal ? (r.inspection_type||'')=== inspVal : true;
-    return statusMatch && subMatch && inspMatch;
+    const dateMatch = (!dateFrom && !dateTo) ? true : inRange(r.expiry_date||'');
+    return statusMatch && subMatch && inspMatch && dateMatch;
   };
 
   if (reportSheet==='both') {
-    // Combined report - Equipment + Sling/MPI
     const eqFiltered = eqData.filter(filterEq);
-    const slFiltered = slData.filter(r => {
-      const s = getStatus(r.expiry_date);
-      return reportStatus==='all' ? true : reportStatus==='valid' ? (s==='valid'||s==='watch') : s===reportStatus;
-    });
-
+    const slFiltered = slData.filter(filterSl);
     const eqRows = eqFiltered.map(r => ['Equipment', r.unit_number, r.category, r.equipment, r.serial_number, r.inspection_type, r.expiry_date||'', r.package_id||'', '', '', statusLabel(getStatus(r.expiry_date))]);
-    const slRows = slFiltered.map(r => ['Sling/MPI', '', '', r.equipment_type, r.serial_number, r.inspection_type, r.expiry_date||'', '', r.capacity_ton||'', r.location||'', statusLabel(getStatus(r.expiry_date))]);
-
+    const slRows = slFiltered.map(r => ['Sling/MPI', r.equip_unit||'', '', r.equipment_type, r.serial_number, r.inspection_type, r.expiry_date||'', '', r.capacity_ton||'', r.location||'', statusLabel(getStatus(r.expiry_date))]);
     headers = ['Sheet','Unit Number','Category','Equipment/Type','Serial Number','Inspection Type','Expiry Date','Package ID','Capacity (Ton)','Location','Status'];
     rows = [...eqRows, ...slRows];
     data = [...eqFiltered, ...slFiltered];
-
   } else if (reportSheet==='equipment') {
     data = eqData.filter(filterEq);
     headers = ['Unit Number','Category','Equipment','Serial Number','Inspection Type','Expiry Date','Package ID','Active','Status'];
     rows = data.map(r => [r.unit_number,r.category,r.equipment,r.serial_number,r.inspection_type,r.expiry_date||'',r.package_id||'',r.active||'',statusLabel(getStatus(r.expiry_date))]);
   } else {
     data = slData.filter(filterSl);
-    headers = ['Equipment Type','Inspection Type','Serial Number','Expiry Date','Capacity (Ton)','LEG','Location','Status'];
-    rows = data.map(r => [r.equipment_type,r.inspection_type,r.serial_number,r.expiry_date||'',r.capacity_ton||'',r.leg||'',r.location||'',statusLabel(getStatus(r.expiry_date))]);
+    headers = ['Equipment Type','Inspection Type','Serial Number','Expiry Date','Capacity (Ton)','LEG','Location','Equip/Unit','Status'];
+    rows = data.map(r => [r.equipment_type,r.inspection_type,r.serial_number,r.expiry_date||'',r.capacity_ton||'',r.leg||'',r.location||'',r.equip_unit||'',statusLabel(getStatus(r.expiry_date))]);
   }
 
   if (!data.length) { showToast('No data to export'); return; }
 
-  // Build CSV then download as xls (Excel-compatible)
-  const csvContent = [headers, ...rows].map(row =>
-    row.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')
-  ).join('\n');
+  // Count statuses for the summary sheet
+  let cExp=0, cExpi=0, cVal=0;
+  data.forEach(r => {
+    const s = getStatus(r.expiry_date);
+    if (s==='expired') cExp++;
+    else if (s==='expiring') cExpi++;
+    else if (s==='valid'||s==='watch') cVal++;
+  });
 
-  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
   const statusNames = {all:'All',expired:'Expired',expiring:'Expiring',valid:'Valid'};
-  a.href=url;
-  a.download=`${reportSheet}_${statusNames[reportStatus]}${subVal?'_'+subVal:''}_${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  closeReport();
-  showToast('✓ Report downloaded!');
+  const dateTag = (dateFrom||dateTo) ? `_${dateFrom||'start'}_to_${dateTo||'end'}` : '';
+  const fileName = `${reportSheet}_${statusNames[reportStatus]}${subVal?'_'+subVal:''}${dateTag}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  // Real Excel file via SheetJS
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // Data sheet
+    const aoa = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // Auto column widths
+    ws['!cols'] = headers.map((h,i) => {
+      let max = String(h).length;
+      rows.forEach(row => { const len = String(row[i]??'').length; if (len>max) max=len; });
+      return { wch: Math.min(max+2, 40) };
+    });
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+
+    // Summary sheet
+    const summaryAoa = [
+      ['DWO Equipment Inspection — Report Summary'],
+      [],
+      ['Sheet', reportSheet==='both'?'Equipment + Sling/MPI':reportSheet==='equipment'?'Equipment':'Sling/MPI'],
+      ['Status Filter', statusNames[reportStatus]],
+      ['Date Range', (dateFrom||dateTo) ? `${dateFrom||'start'} → ${dateTo||'end'}` : 'All dates'],
+      ['Generated', new Date().toLocaleString('en-GB',{timeZone:'Asia/Riyadh'})],
+      ['Generated By', currentUser||'—'],
+      [],
+      ['Status', 'Count'],
+      ['Expired', cExp],
+      ['Expiring Soon', cExpi],
+      ['Valid', cVal],
+      ['TOTAL', data.length]
+    ];
+    const wsSum = XLSX.utils.aoa_to_sheet(summaryAoa);
+    wsSum['!cols'] = [{wch:24},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, wsSum, 'Summary');
+
+    XLSX.writeFile(wb, fileName);
+
+    apiPost('audit_log', {username:currentUser, action:'Export Report', sheet:reportSheet, details:`${statusNames[reportStatus]} | ${data.length} rows${dateTag?' | '+dateTag.replace(/_/g,' '):''}`}).catch(()=>{});
+    closeReport();
+    showToast(`✓ Excel downloaded — ${data.length} rows`);
+  } catch(e) {
+    console.error(e);
+    showToast('Error generating Excel');
+  }
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 </body>
 </html>
