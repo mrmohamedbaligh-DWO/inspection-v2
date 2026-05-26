@@ -407,10 +407,10 @@
       <div class="search-label" style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:10px;">New Equipment</div>
       <div class="form-grid">
         <div class="form-group"><div class="search-label">Unit Number *</div><input class="form-input" id="f1-unit" placeholder="e.g. OHS-186" /></div>
-        <div class="form-group"><div class="search-label">Category *</div><select class="form-select" id="f1-category"><option value="">-- Select --</option></select></div>
-        <div class="form-group"><div class="search-label">Equipment *</div><select class="form-select" id="f1-equipment"><option value="">-- Select --</option></select></div>
+        <div class="form-group"><div class="search-label">Category *</div><input class="form-input" id="f1-category" list="dl-f1-category" placeholder="Select or type new" /><datalist id="dl-f1-category"></datalist></div>
+        <div class="form-group"><div class="search-label">Equipment *</div><input class="form-input" id="f1-equipment" list="dl-f1-equipment" placeholder="Select or type new" /><datalist id="dl-f1-equipment"></datalist></div>
         <div class="form-group"><div class="search-label">Serial Number</div><input class="form-input" id="f1-serial" placeholder="e.g. OHS-186" /></div>
-        <div class="form-group"><div class="search-label">Inspection Type *</div><select class="form-select" id="f1-insptype"><option value="">-- Select --</option></select></div>
+        <div class="form-group"><div class="search-label">Inspection Type *</div><input class="form-input" id="f1-insptype" list="dl-f1-insptype" placeholder="Select or type new" /><datalist id="dl-f1-insptype"></datalist></div>
         <div class="form-group"><div class="search-label">Expiry Date *</div><input class="form-input" type="date" id="f1-expiry" /></div>
         <div class="form-group"><div class="search-label">Package ID</div><input class="form-input" id="f1-pkg" placeholder="e.g. SA, CTU-726" /></div>
         <div class="form-group"><div class="search-label">Active</div><select class="form-select" id="f1-active"><option value="Yes">Yes</option><option value="No">No</option></select></div>
@@ -421,13 +421,13 @@
     <div class="search-box" id="form-sl" style="display:none;">
       <div class="search-label" style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:10px;">New Sling / MPI</div>
       <div class="form-grid">
-        <div class="form-group"><div class="search-label">Equipment Type *</div><select class="form-select" id="f2-type"><option value="">-- Select --</option></select></div>
-        <div class="form-group"><div class="search-label">Inspection Type *</div><select class="form-select" id="f2-insptype"><option value="">-- Select --</option></select></div>
+        <div class="form-group"><div class="search-label">Equipment Type *</div><input class="form-input" id="f2-type" list="dl-f2-type" placeholder="Select or type new" /><datalist id="dl-f2-type"></datalist></div>
+        <div class="form-group"><div class="search-label">Inspection Type *</div><input class="form-input" id="f2-insptype" list="dl-f2-insptype" placeholder="Select or type new" /><datalist id="dl-f2-insptype"></datalist></div>
         <div class="form-group"><div class="search-label">Serial Number *</div><input class="form-input" id="f2-serial" placeholder="e.g. MF-105" /></div>
         <div class="form-group"><div class="search-label">Expiry Date *</div><input class="form-input" type="date" id="f2-expiry" /></div>
         <div class="form-group"><div class="search-label">Capacity (Ton)</div><input class="form-input" id="f2-capacity" placeholder="e.g. 18" /></div>
         <div class="form-group"><div class="search-label">LEG</div><input class="form-input" id="f2-leg" placeholder="e.g. 4" /></div>
-        <div class="form-group"><div class="search-label">Location</div><select class="form-select" id="f2-location"><option value="">-- Select --</option></select></div>
+        <div class="form-group"><div class="search-label">Location</div><input class="form-input" id="f2-location" list="dl-f2-location" placeholder="Select or type new" /><datalist id="dl-f2-location"></datalist></div>
         <button class="submit-btn" style="background:var(--blue);" onclick="submitSling()">Add Sling / MPI</button>
       </div>
     </div>
@@ -1023,23 +1023,24 @@ function populateDropdowns() {
   const cats = [...new Set(eqData.map(r=>r.category).filter(Boolean))].sort();
   const equips = [...new Set(eqData.map(r=>r.equipment).filter(Boolean))].sort();
   const insps = [...new Set(eqData.map(r=>r.inspection_type).filter(Boolean))].sort();
-  setOpts('f1-category', cats);
-  setOpts('f1-equipment', equips);
-  setOpts('f1-insptype', insps);
+  setDatalist('dl-f1-category', cats);
+  setDatalist('dl-f1-equipment', equips);
+  setDatalist('dl-f1-insptype', insps);
 
   const types = [...new Set(slData.map(r=>r.equipment_type).filter(Boolean))].sort();
   const sInsps = [...new Set(slData.map(r=>r.inspection_type).filter(Boolean))].sort();
   const locs = [...new Set(slData.map(r=>r.location).filter(Boolean))].sort();
-  setOpts('f2-type', types);
-  setOpts('f2-insptype', sInsps);
-  setOpts('f2-location', locs);
+  setDatalist('dl-f2-type', types);
+  setDatalist('dl-f2-insptype', sInsps);
+  setDatalist('dl-f2-location', locs);
 
   const filterSel = document.getElementById('sling-filter');
   filterSel.innerHTML = '<option value="">All</option>' + types.map(t=>`<option value="${t}">${t}</option>`).join('');
 }
 
-function setOpts(id, arr) {
-  document.getElementById(id).innerHTML = '<option value="">-- Select --</option>' + arr.map(v=>`<option value="${v}">${v}</option>`).join('');
+function setDatalist(id, arr) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = arr.map(v=>`<option value="${v}"></option>`).join('');
 }
 
 // ── Tab switching ──────────────────────────────────────────
@@ -1399,10 +1400,10 @@ function selectAddSheet(type) {
 
 async function submitEquipment() {
   const unit=document.getElementById('f1-unit').value.trim();
-  const category=document.getElementById('f1-category').value;
-  const equipment=document.getElementById('f1-equipment').value;
+  const category=document.getElementById('f1-category').value.trim();
+  const equipment=document.getElementById('f1-equipment').value.trim();
   const serial=document.getElementById('f1-serial').value.trim();
-  const insptype=document.getElementById('f1-insptype').value;
+  const insptype=document.getElementById('f1-insptype').value.trim();
   const expiry=document.getElementById('f1-expiry').value;
   const pkg=document.getElementById('f1-pkg').value.trim();
   const active=document.getElementById('f1-active').value;
@@ -1412,27 +1413,27 @@ async function submitEquipment() {
     await apiPost('equipment', {unit_number:unit,category,equipment,serial_number:serial,inspection_type:insptype,expiry_date:expiry,package_id:pkg,active});
     await apiPost('audit_log', {username:currentUser, action:'Add Equipment', sheet:'equipment', details:`${unit} | ${equipment} | ${serial}`});
     showToast('✓ Added!');
-    ['f1-unit','f1-serial','f1-pkg'].forEach(id=>document.getElementById(id).value='');
+    ['f1-unit','f1-category','f1-equipment','f1-serial','f1-insptype','f1-pkg'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('f1-expiry').value='';
     await loadAllData();
   } catch(e) { showToast('Error adding'); }
 }
 
 async function submitSling() {
-  const type=document.getElementById('f2-type').value;
-  const insptype=document.getElementById('f2-insptype').value;
+  const type=document.getElementById('f2-type').value.trim();
+  const insptype=document.getElementById('f2-insptype').value.trim();
   const serial=document.getElementById('f2-serial').value.trim();
   const expiry=document.getElementById('f2-expiry').value;
   const capacity=document.getElementById('f2-capacity').value.trim();
   const leg=document.getElementById('f2-leg').value.trim();
-  const location=document.getElementById('f2-location').value;
+  const location=document.getElementById('f2-location').value.trim();
   if (!type||!insptype||!serial||!expiry) { showToast('Please fill required fields *'); return; }
   if (await checkSerial('sling_mpi', serial)) { showToast('⚠️ Serial number already exists!'); return; }
   try {
     await apiPost('sling_mpi', {equipment_type:type,inspection_type:insptype,serial_number:serial,expiry_date:expiry,status:'Valid',capacity_ton:capacity,leg,location});
     await apiPost('audit_log', {username:currentUser, action:'Add Sling/MPI', sheet:'sling_mpi', details:`${type} | ${serial}`});
     showToast('✓ Added!');
-    ['f2-serial','f2-capacity','f2-leg'].forEach(id=>document.getElementById(id).value='');
+    ['f2-type','f2-insptype','f2-serial','f2-capacity','f2-leg','f2-location'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('f2-expiry').value='';
     slData = await api('sling_mpi','?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location,equip_unit&order=equipment_type');
     updateKPIs();
