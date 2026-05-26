@@ -781,7 +781,7 @@ async function loadAllData() {
     eqData = allEq;
 
     // Load sling
-    slData = await api('sling_mpi', '?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location&order=equipment_type');
+    slData = await api('sling_mpi', '?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location,equip_unit&order=equipment_type');
 
     updateKPIs();
     populateDropdowns();
@@ -1386,7 +1386,7 @@ async function submitSling() {
     showToast('✓ Added!');
     ['f2-serial','f2-capacity','f2-leg'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('f2-expiry').value='';
-    slData = await api('sling_mpi','?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location&order=equipment_type');
+    slData = await api('sling_mpi','?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location,equip_unit&order=equipment_type');
     updateKPIs();
     renderSlings(slData);
   } catch(e) { showToast('Error adding'); }
