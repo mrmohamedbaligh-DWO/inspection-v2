@@ -1148,8 +1148,34 @@ function clearUnit() { document.getElementById('unit-input').value=''; document.
 async function searchPackage() {
   const q = document.getElementById('pkg-input').value.trim().toLowerCase();
   if (!q) return;
-  const filtered = eqData.filter(r => (r.package_id||'').toLowerCase().includes(q));
-  document.getElementById('pkg-results').innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--blue)') : '<div class="empty">No results found</div>';
+  const area = document.getElementById('pkg-results');
+  area.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  const isAdmin = currentRole === 'Admin';
+
+  // Equipment filter by package_id
+  const filteredEq = eqData.filter(r => {
+    const matchQ = (r.package_id||'').toLowerCase().includes(q);
+    const isActive = (r.active||'').toLowerCase() === 'yes';
+    return matchQ && (isAdmin ? true : isActive);
+  });
+
+  // Sling/MPI filter by location matching the package query
+  const filteredSl = slData.filter(r =>
+    (r.location||'').toLowerCase().includes(q)
+  );
+
+  let html = '';
+  if (filteredEq.length) {
+    html += `<div class="section-label">${filteredEq.length} Equipment items</div>` + renderEqCards(filteredEq, 'var(--navy)');
+  }
+  if (filteredSl.length) {
+    html += `<div class="section-label" style="margin-top:8px;">Sling / MPI — ${filteredSl.length} items in this location</div>` + renderSlingCards(filteredSl);
+  }
+  if (!filteredEq.length && !filteredSl.length) {
+    html = '<div class="empty">No results found</div>';
+  }
+  area.innerHTML = html;
 }
 function clearPackage() { document.getElementById('pkg-input').value=''; document.getElementById('pkg-results').innerHTML='<div class="empty">Enter a Package ID to search</div>'; }
 
