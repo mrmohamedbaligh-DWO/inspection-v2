@@ -622,6 +622,7 @@ const apiPatch = async (table, filter, data) => {
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
     body: JSON.stringify(data)
   });
+  if (!res.ok) { const err = await res.text(); throw new Error('Patch failed: ' + err); }
   return res.json();
 };
 
@@ -1304,32 +1305,36 @@ async function saveItem() {
       if (newSerial) updateData.serial_number = newSerial;
       updateData.remarks = newRemarks;
       await apiPatch('equipment', `id=eq.${item.id}`, updateData);
-      const idx = eqData.findIndex(r=>r.id===item.id);
-      if (idx>-1) {
-        eqData[idx].expiry_date = newDate;
-        if (updateData.package_id) eqData[idx].package_id = updateData.package_id;
-        if (updateData.inspection_type) eqData[idx].inspection_type = updateData.inspection_type;
-        if (updateData.serial_number) eqData[idx].serial_number = updateData.serial_number;
-        eqData[idx].remarks = newRemarks;
+      const updatedEq = await api('equipment', `?id=eq.${item.id}&select=id,unit_number,category,equipment,serial_number,inspection_type,expiry_date,package_id,remarks,active`);
+      if (updatedEq && updatedEq.length > 0) {
+        const idx = eqData.findIndex(r=>r.id===item.id);
+        if (idx>-1) eqData[idx] = {...eqData[idx], ...updatedEq[0]};
       }
       updateKPIs();
+      renderCharts();
     } else {
       const newLoc = document.getElementById('modal-loc').value.trim();
       const newEquipUnit = document.getElementById('modal-equip-unit').value.trim();
       if (newLoc) updateData.location = newLoc;
       if (newEquipUnit) updateData.equip_unit = newEquipUnit;
       await apiPatch('sling_mpi', `id=eq.${item.id}`, updateData);
-      const idx = slData.findIndex(r=>r.id===item.id);
-      if (idx>-1) {
-        slData[idx].expiry_date = newDate;
-        if (updateData.location) slData[idx].location = updateData.location;
-        if (updateData.equip_unit) slData[idx].equip_unit = updateData.equip_unit;
+      const updatedSl = await api('sling_mpi', `?id=eq.${item.id}&select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location,equip_unit`);
+      if (updatedSl && updatedSl.length > 0) {
+        const idx = slData.findIndex(r=>r.id===item.id);
+        if (idx>-1) slData[idx] = {...slData[idx], ...updatedSl[0]};
       }
       updateKPIs();
       renderSlings(slData);
     }
+    // Refresh visible tab
+    const activeTabEl = document.querySelector('.tab.active');
+    if (activeTabEl) {
+      const tabAct = activeTabEl.getAttribute('onclick') || '';
+      if (tabAct.includes("'unit'")) { const uq = document.getElementById('unit-input').value.trim(); if (uq) searchUnit(); }
+      else if (tabAct.includes("'package'")) { const pq = document.getElementById('pkg-input').value.trim(); if (pq) searchPackage(); }
+    }
     // Log audit
-    await apiPost('audit_log', {username:currentUser, action:'Edit Date', sheet:item._table, details:`${item._table==='equipment'?item.unit_number+' | '+item.equipment:item.serial_number} | ${item.expiry_date} → ${newDate}`});
+    await apiPost('audit_log', {username:currentUser, action:'Edit Item', sheet:item._table, details:`${item._table==='equipment'?item.unit_number+' | '+item.equipment:item.serial_number} | Expiry: ${item.expiry_date} → ${newDate}`});
     closeModal();
     showToast('✓ Saved!');
   } catch(e) { showToast('Error saving'); }
