@@ -1245,6 +1245,7 @@ function openEditEq(item) {
   document.getElementById('modal-date').value = item.expiry_date||'';
   document.getElementById('modal-eq-fields').style.display = 'block';
   document.getElementById('modal-loc-box').style.display = 'none';
+  document.getElementById('modal-equip-unit').value = '';
   document.getElementById('modal-insptype').value = item.inspection_type||'';
   document.getElementById('modal-serial').value = item.serial_number||'';
   document.getElementById('modal-pkg').value = item.package_id||'';
@@ -1258,7 +1259,7 @@ function openEditSl(item) {
   document.getElementById('modal-username').textContent = currentUser;
   document.getElementById('modal-user').style.display = 'block';
   document.getElementById('modal-date').value = item.expiry_date||'';
-  document.getElementById('modal-pkg-box').style.display = 'none';
+  document.getElementById('modal-eq-fields').style.display = 'none';
   document.getElementById('modal-loc-box').style.display = 'block';
   document.getElementById('modal-loc').value = item.location||'';
   document.getElementById('modal-equip-unit').value = item.equip_unit||'';
