@@ -359,6 +359,12 @@
         <button class="search-btn" onclick="searchPackage()">Search</button>
         <button class="clear-btn" onclick="clearPackage()">✕</button>
       </div>
+      <div id="pkg-equip-filter-row" style="display:none;margin-top:8px;">
+        <div class="search-label" style="margin-bottom:5px;">Filter by Equipment</div>
+        <select class="search-input" id="pkg-equip-filter" style="width:100%;" onchange="applyPackageEquipFilter()">
+          <option value="">All Equipment</option>
+        </select>
+      </div>
     </div>
   </div>
   <div class="results-area" id="pkg-results"><div class="empty">Enter a Package ID to search</div></div>
@@ -1147,13 +1153,51 @@ async function searchUnit() {
 function clearUnit() { document.getElementById('unit-input').value=''; document.getElementById('unit-results').innerHTML='<div class="empty">Enter a unit number to search</div>'; }
 
 // ── Package Search ─────────────────────────────────────────
+let pkgResultsData = [];
+
 async function searchPackage() {
   const q = document.getElementById('pkg-input').value.trim().toLowerCase();
   if (!q) return;
-  const filtered = eqData.filter(r => (r.package_id||'').toLowerCase().includes(q));
-  document.getElementById('pkg-results').innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--blue)') : '<div class="empty">No results found</div>';
+  pkgResultsData = eqData.filter(r => (r.package_id||'').toLowerCase().includes(q));
+
+  const filterRow = document.getElementById('pkg-equip-filter-row');
+  const sel = document.getElementById('pkg-equip-filter');
+
+  if (!pkgResultsData.length) {
+    filterRow.style.display = 'none';
+    sel.value = '';
+    document.getElementById('pkg-results').innerHTML = '<div class="empty">No results found</div>';
+    return;
+  }
+
+  // Build equipment-type dropdown from items actually present in this package
+  const equipTypes = [...new Set(pkgResultsData.map(r=>r.equipment).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All Equipment</option>' + equipTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
+  sel.value = '';
+  filterRow.style.display = equipTypes.length ? 'block' : 'none';
+
+  renderPackageResults(pkgResultsData);
 }
-function clearPackage() { document.getElementById('pkg-input').value=''; document.getElementById('pkg-results').innerHTML='<div class="empty">Enter a Package ID to search</div>'; }
+
+function applyPackageEquipFilter() {
+  const equipVal = document.getElementById('pkg-equip-filter').value;
+  const filtered = equipVal ? pkgResultsData.filter(r => (r.equipment||'') === equipVal) : pkgResultsData;
+  renderPackageResults(filtered);
+}
+
+function renderPackageResults(data) {
+  document.getElementById('pkg-results').innerHTML = data.length
+    ? `<div class="section-label">${data.length} items</div>` + renderEqCards(data, 'var(--blue)')
+    : '<div class="empty">No results found</div>';
+}
+
+function clearPackage() {
+  document.getElementById('pkg-input').value='';
+  pkgResultsData = [];
+  document.getElementById('pkg-equip-filter-row').style.display = 'none';
+  document.getElementById('pkg-equip-filter').value = '';
+  document.getElementById('pkg-results').innerHTML='<div class="empty">Enter a Package ID to search</div>';
+}
 
 // ── Sling/MPI ──────────────────────────────────────────────
 function filterSling() {
