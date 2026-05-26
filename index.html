@@ -499,8 +499,10 @@
       <input class="modal-input" type="text" id="modal-pkg" placeholder="e.g. SA, CTU-726" />
     </div>
     <div id="modal-loc-box" style="display:none;">
-      <div class="modal-label">Location</div>
-      <input class="modal-input" type="text" id="modal-loc" placeholder="e.g. Yard, Field" />
+      <div class="modal-label">Equipment / Unit Number</div>
+      <input class="modal-input" type="text" id="modal-equip-unit" placeholder="e.g. INJ-726, TB-713" />
+      <div class="modal-label" style="margin-top:10px;">Location (Package ID)</div>
+      <input class="modal-input" type="text" id="modal-loc" placeholder="e.g. CTU-724, SA" />
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
@@ -1211,7 +1213,7 @@ function renderSlingCards(data) {
       const delBtn = currentRole==='Admin' ? `<button class="btn-delete" onclick="event.stopPropagation();deleteItem('sling_mpi','${item.id}','${(item.serial_number||'').replace(/'/g,'')}')" >🗑</button>` : '';
       return `<div class="equip-row" onclick='openEditSl(${JSON.stringify(item)})'>
         <div style="flex:1;min-width:0;"><div class="eq-name">${item.serial_number||'—'}</div>
-        <div class="eq-sub">${item.inspection_type||''}${item.capacity_ton?' · '+item.capacity_ton+'T':''}${item.location?' · 📍 '+item.location:''}</div></div>
+        <div class="eq-sub">${item.inspection_type||''}${item.capacity_ton?' · '+item.capacity_ton+'T':''}${item.equip_unit?' · 🔧 '+item.equip_unit:''}${item.location?' · 📍 '+item.location:''}</div></div>
         <div class="eq-right" style="display:flex;align-items:center;gap:6px;"><div style="text-align:right;"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>${delBtn}</div>
       </div>`;
     }).join('');
@@ -1244,6 +1246,7 @@ function openEditSl(item) {
   document.getElementById('modal-pkg-box').style.display = 'none';
   document.getElementById('modal-loc-box').style.display = 'block';
   document.getElementById('modal-loc').value = item.location||'';
+  document.getElementById('modal-equip-unit').value = item.equip_unit||'';
   document.getElementById('edit-modal').classList.add('active');
 }
 function closeModal() {
@@ -1251,6 +1254,7 @@ function closeModal() {
   document.getElementById('modal-user').style.display = 'none';
   document.getElementById('modal-pkg-box').style.display = 'none';
   document.getElementById('modal-loc-box').style.display = 'none';
+  document.getElementById('modal-equip-unit').value = '';
   currentEdit = null;
 }
 document.getElementById('edit-modal').addEventListener('click', e => { if (e.target===document.getElementById('edit-modal')) closeModal(); });
@@ -1272,10 +1276,16 @@ async function saveItem() {
       updateKPIs();
     } else {
       const newLoc = document.getElementById('modal-loc').value.trim();
+      const newEquipUnit = document.getElementById('modal-equip-unit').value.trim();
       if (newLoc) updateData.location = newLoc;
+      if (newEquipUnit) updateData.equip_unit = newEquipUnit;
       await apiPatch('sling_mpi', `id=eq.${item.id}`, updateData);
       const idx = slData.findIndex(r=>r.id===item.id);
-      if (idx>-1) { slData[idx].expiry_date=newDate; if (updateData.location) slData[idx].location=updateData.location; }
+      if (idx>-1) {
+        slData[idx].expiry_date = newDate;
+        if (updateData.location) slData[idx].location = updateData.location;
+        if (updateData.equip_unit) slData[idx].equip_unit = updateData.equip_unit;
+      }
       updateKPIs();
       renderSlings(slData);
     }
