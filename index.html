@@ -504,6 +504,8 @@
 
     <!-- Equipment-only fields -->
     <div id="modal-eq-fields" style="display:none;">
+      <div class="modal-label" style="margin-top:10px;">Equipment Name</div>
+      <input class="modal-input" type="text" id="modal-equipment" placeholder="e.g. Reel SWIVL" />
       <div class="modal-label" style="margin-top:10px;">Inspection Type</div>
       <input class="modal-input" type="text" id="modal-insptype" placeholder="e.g. MPI, PM-2, Calibration" />
       <div class="modal-label" style="margin-top:10px;">Serial Number</div>
@@ -1291,6 +1293,7 @@ function openEditEq(item) {
   document.getElementById('modal-date').value = item.expiry_date||'';
   document.getElementById('modal-eq-fields').style.display = 'block';
   document.getElementById('modal-loc-box').style.display = 'none';
+  document.getElementById('modal-equipment').value = item.equipment||'';
   document.getElementById('modal-insptype').value = item.inspection_type||'';
   document.getElementById('modal-serial').value = item.serial_number||'';
   document.getElementById('modal-pkg').value = item.package_id||'';
@@ -1329,10 +1332,12 @@ async function saveItem() {
   try {
     let updateData = {expiry_date: newDate};
     if (item._table==='equipment') {
+      const newEquipment = document.getElementById('modal-equipment').value.trim();
       const newPkg = document.getElementById('modal-pkg').value.trim();
       const newInsp = document.getElementById('modal-insptype').value.trim();
       const newSerial = document.getElementById('modal-serial').value.trim();
       const newRemarks = document.getElementById('modal-remarks').value.trim();
+      if (newEquipment) updateData.equipment = newEquipment;
       if (newPkg) updateData.package_id = newPkg;
       if (newInsp) updateData.inspection_type = newInsp;
       if (newSerial) updateData.serial_number = newSerial;
