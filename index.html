@@ -1155,47 +1155,57 @@ async function searchUnit() {
 function clearUnit() { document.getElementById('unit-input').value=''; document.getElementById('unit-results').innerHTML='<div class="empty">Enter a unit number to search</div>'; }
 
 // ── Package Search ─────────────────────────────────────────
-let pkgResultsData = [];
+let pkgEqResults = [], pkgSlResults = [];
 
 async function searchPackage() {
   const q = document.getElementById('pkg-input').value.trim().toLowerCase();
   if (!q) return;
-  pkgResultsData = eqData.filter(r => (r.package_id||'').toLowerCase().includes(q));
+  pkgEqResults = eqData.filter(r => (r.package_id||'').toLowerCase().includes(q));
+  pkgSlResults = slData.filter(r => (r.location||'').toLowerCase().includes(q));
 
   const filterRow = document.getElementById('pkg-equip-filter-row');
   const sel = document.getElementById('pkg-equip-filter');
 
-  if (!pkgResultsData.length) {
+  if (!pkgEqResults.length && !pkgSlResults.length) {
     filterRow.style.display = 'none';
     sel.value = '';
     document.getElementById('pkg-results').innerHTML = '<div class="empty">No results found</div>';
     return;
   }
 
-  // Build equipment-type dropdown from items actually present in this package
-  const equipTypes = [...new Set(pkgResultsData.map(r=>r.equipment).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">All Equipment</option>' + equipTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
+  // Build dropdown from equipment names + sling types actually present in this package
+  const eqNames = pkgEqResults.map(r=>r.equipment).filter(Boolean);
+  const slTypes = pkgSlResults.map(r=>r.equipment_type).filter(Boolean);
+  const allTypes = [...new Set([...eqNames, ...slTypes])].sort();
+  sel.innerHTML = '<option value="">All Items</option>' + allTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
   sel.value = '';
-  filterRow.style.display = equipTypes.length ? 'block' : 'none';
+  filterRow.style.display = allTypes.length ? 'block' : 'none';
 
-  renderPackageResults(pkgResultsData);
+  renderPackageResults(pkgEqResults, pkgSlResults);
 }
 
 function applyPackageEquipFilter() {
-  const equipVal = document.getElementById('pkg-equip-filter').value;
-  const filtered = equipVal ? pkgResultsData.filter(r => (r.equipment||'') === equipVal) : pkgResultsData;
-  renderPackageResults(filtered);
+  const val = document.getElementById('pkg-equip-filter').value;
+  const eqF = val ? pkgEqResults.filter(r => (r.equipment||'') === val) : pkgEqResults;
+  const slF = val ? pkgSlResults.filter(r => (r.equipment_type||'') === val) : pkgSlResults;
+  renderPackageResults(eqF, slF);
 }
 
-function renderPackageResults(data) {
-  document.getElementById('pkg-results').innerHTML = data.length
-    ? `<div class="section-label">${data.length} items</div>` + renderEqCards(data, 'var(--blue)')
-    : '<div class="empty">No results found</div>';
+function renderPackageResults(eqList, slList) {
+  let html = '';
+  if (eqList.length) {
+    html += `<div class="section-label">Equipment — ${eqList.length} items</div>` + renderEqCards(eqList, 'var(--blue)');
+  }
+  if (slList.length) {
+    html += `<div class="section-label" style="margin-top:8px;">Sling / MPI — ${slList.length} items</div>` + renderSlingCards(slList);
+  }
+  document.getElementById('pkg-results').innerHTML = html || '<div class="empty">No results found</div>';
 }
 
 function clearPackage() {
   document.getElementById('pkg-input').value='';
-  pkgResultsData = [];
+  pkgEqResults = [];
+  pkgSlResults = [];
   document.getElementById('pkg-equip-filter-row').style.display = 'none';
   document.getElementById('pkg-equip-filter').value = '';
   document.getElementById('pkg-results').innerHTML='<div class="empty">Enter a Package ID to search</div>';
