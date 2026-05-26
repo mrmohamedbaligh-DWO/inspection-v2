@@ -622,10 +622,6 @@ const apiPatch = async (table, filter, data) => {
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
     body: JSON.stringify(data)
   });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error('Patch failed: ' + err);
-  }
   return res.json();
 };
 
@@ -784,7 +780,7 @@ async function loadAllData() {
     eqData = allEq;
 
     // Load sling
-    slData = await api('sling_mpi', '?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location,equip_unit&order=equipment_type');
+    slData = await api('sling_mpi', '?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location&order=equipment_type');
 
     updateKPIs();
     populateDropdowns();
@@ -1152,8 +1148,20 @@ function clearUnit() { document.getElementById('unit-input').value=''; document.
 async function searchPackage() {
   const q = document.getElementById('pkg-input').value.trim().toLowerCase();
   if (!q) return;
-  const filtered = eqData.filter(r => (r.package_id||'').toLowerCase().includes(q));
-  document.getElementById('pkg-results').innerHTML = filtered.length ? `<div class="section-label">${filtered.length} items</div>` + renderEqCards(filtered, 'var(--blue)') : '<div class="empty">No results found</div>';
+  const area = document.getElementById('pkg-results');
+  area.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const isAdmin = currentRole === 'Admin';
+  const filteredEq = eqData.filter(r => {
+    const matchQ = (r.package_id||'').toLowerCase().includes(q);
+    const isActive = (r.active||'').toLowerCase() === 'yes';
+    return matchQ && (isAdmin ? true : isActive);
+  });
+  const filteredSl = slData.filter(r => (r.location||'').toLowerCase().includes(q));
+  let html = '';
+  if (filteredEq.length) html += `<div class="section-label">${filteredEq.length} Equipment items</div>` + renderEqCards(filteredEq, 'var(--navy)');
+  if (filteredSl.length) html += `<div class="section-label" style="margin-top:8px;">Sling / MPI — ${filteredSl.length} items in this location</div>` + renderSlingCards(filteredSl);
+  if (!filteredEq.length && !filteredSl.length) html = '<div class="empty">No results found</div>';
+  area.innerHTML = html;
 }
 function clearPackage() { document.getElementById('pkg-input').value=''; document.getElementById('pkg-results').innerHTML='<div class="empty">Enter a Package ID to search</div>'; }
 
@@ -1262,7 +1270,7 @@ function openEditSl(item) {
   document.getElementById('modal-username').textContent = currentUser;
   document.getElementById('modal-user').style.display = 'block';
   document.getElementById('modal-date').value = item.expiry_date||'';
-  document.getElementById('modal-pkg-box').style.display = 'none';
+  document.getElementById('modal-eq-fields').style.display = 'none';
   document.getElementById('modal-loc-box').style.display = 'block';
   document.getElementById('modal-loc').value = item.location||'';
   document.getElementById('modal-equip-unit').value = item.equip_unit||'';
@@ -1296,55 +1304,32 @@ async function saveItem() {
       if (newSerial) updateData.serial_number = newSerial;
       updateData.remarks = newRemarks;
       await apiPatch('equipment', `id=eq.${item.id}`, updateData);
-      // Re-fetch updated record from Supabase to ensure local data matches DB
-      const updated = await api('equipment', `?id=eq.${item.id}&select=id,unit_number,category,equipment,serial_number,inspection_type,expiry_date,package_id,remarks,active`);
-      if (updated && updated.length > 0) {
-        const idx = eqData.findIndex(r=>r.id===item.id);
-        if (idx>-1) eqData[idx] = {...eqData[idx], ...updated[0]};
+      const idx = eqData.findIndex(r=>r.id===item.id);
+      if (idx>-1) {
+        eqData[idx].expiry_date = newDate;
+        if (updateData.package_id) eqData[idx].package_id = updateData.package_id;
+        if (updateData.inspection_type) eqData[idx].inspection_type = updateData.inspection_type;
+        if (updateData.serial_number) eqData[idx].serial_number = updateData.serial_number;
+        eqData[idx].remarks = newRemarks;
       }
       updateKPIs();
-      renderCharts();
-      // Refresh visible results
-      const activeTabElEq = document.querySelector('.tab.active');
-      if (activeTabElEq) {
-        const tabActionEq = activeTabElEq.getAttribute('onclick') || '';
-        if (tabActionEq.includes("'unit'")) {
-          const unitQEq = document.getElementById('unit-input').value.trim();
-          if (unitQEq) searchUnit();
-        } else if (tabActionEq.includes("'package'")) {
-          const pkgQEq = document.getElementById('pkg-input').value.trim();
-          if (pkgQEq) searchPackage();
-        }
-      }
     } else {
       const newLoc = document.getElementById('modal-loc').value.trim();
       const newEquipUnit = document.getElementById('modal-equip-unit').value.trim();
       if (newLoc) updateData.location = newLoc;
       if (newEquipUnit) updateData.equip_unit = newEquipUnit;
       await apiPatch('sling_mpi', `id=eq.${item.id}`, updateData);
-      // Re-fetch updated record from Supabase to ensure local data matches DB
-      const updatedSl = await api('sling_mpi', `?id=eq.${item.id}&select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location,equip_unit`);
-      if (updatedSl && updatedSl.length > 0) {
-        const idx = slData.findIndex(r=>r.id===item.id);
-        if (idx>-1) slData[idx] = {...slData[idx], ...updatedSl[0]};
+      const idx = slData.findIndex(r=>r.id===item.id);
+      if (idx>-1) {
+        slData[idx].expiry_date = newDate;
+        if (updateData.location) slData[idx].location = updateData.location;
+        if (updateData.equip_unit) slData[idx].equip_unit = updateData.equip_unit;
       }
       updateKPIs();
       renderSlings(slData);
-      // Refresh visible results
-      const activeTabEl = document.querySelector('.tab.active');
-      if (activeTabEl) {
-        const tabAction = activeTabEl.getAttribute('onclick') || '';
-        if (tabAction.includes("'unit'")) {
-          const unitQ = document.getElementById('unit-input').value.trim();
-          if (unitQ) searchUnit();
-        } else if (tabAction.includes("'package'")) {
-          const pkgQ = document.getElementById('pkg-input').value.trim();
-          if (pkgQ) searchPackage();
-        }
-      }
     }
     // Log audit
-    await apiPost('audit_log', {username:currentUser, action:'Edit Item', sheet:item._table, details:`${item._table==='equipment'?item.unit_number+' | '+item.equipment:item.serial_number} | Expiry: ${item.expiry_date} → ${newDate}`});
+    await apiPost('audit_log', {username:currentUser, action:'Edit Date', sheet:item._table, details:`${item._table==='equipment'?item.unit_number+' | '+item.equipment:item.serial_number} | ${item.expiry_date} → ${newDate}`});
     closeModal();
     showToast('✓ Saved!');
   } catch(e) { showToast('Error saving'); }
@@ -1396,7 +1381,7 @@ async function submitSling() {
     showToast('✓ Added!');
     ['f2-serial','f2-capacity','f2-leg'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('f2-expiry').value='';
-    slData = await api('sling_mpi','?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location,equip_unit&order=equipment_type');
+    slData = await api('sling_mpi','?select=id,equipment_type,inspection_type,serial_number,expiry_date,status,capacity_ton,leg,location&order=equipment_type');
     updateKPIs();
     renderSlings(slData);
   } catch(e) { showToast('Error adding'); }
