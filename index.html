@@ -359,6 +359,12 @@
           <button class="filter-btn" id="uaf-no" onclick="setUnitActiveFilter('no')">❌ Inactive</button>
         </div>
       </div>
+      <div id="unit-insp-filter-row" style="margin-top:8px;">
+        <div class="search-label" style="margin-bottom:5px;">Filter by Inspection Type</div>
+        <select class="search-input" id="unit-insp-filter" style="width:100%;" onchange="searchUnit()">
+          <option value="">All Inspection Types</option>
+        </select>
+      </div>
     </div>
   </div>
   <div class="results-area" id="unit-results"><div class="empty">Enter a unit number to search</div></div>
@@ -1084,6 +1090,15 @@ function populateDropdowns() {
 
   const filterSel = document.getElementById('sling-filter');
   filterSel.innerHTML = '<option value="">All</option>' + types.map(t=>`<option value="${t}">${t}</option>`).join('');
+
+  // Search tab — inspection type filter (combined from equipment + sling)
+  const allInsp = [...new Set([...insps, ...sInsps])].sort();
+  const unitInspSel = document.getElementById('unit-insp-filter');
+  if (unitInspSel) {
+    const prev = unitInspSel.value;
+    unitInspSel.innerHTML = '<option value="">All Inspection Types</option>' + allInsp.map(t=>`<option value="${t}">${t}</option>`).join('');
+    if (allInsp.includes(prev)) unitInspSel.value = prev;
+  }
 }
 
 function setDatalist(id, arr) {
@@ -1180,11 +1195,13 @@ async function searchUnit() {
 
   const qLow = q.toLowerCase();
   const isAdmin = currentRole === 'Admin';
+  const inspFilter = (document.getElementById('unit-insp-filter')?.value || '').toLowerCase();
 
-  // Equipment filter — query match + visibility + active/inactive filter
+  // Equipment filter — query match + visibility + active/inactive filter + inspection type
   const filteredEq = eqData.filter(r => {
     const matchQ = r.unit_number.toLowerCase().includes(qLow);
     if (!matchQ) return false;
+    if (inspFilter && (r.inspection_type||'').toLowerCase() !== inspFilter) return false;
     const isActive = (r.active||'').toLowerCase() === 'yes';
     // Non-admins only ever see active items
     if (!isAdmin) return isActive;
@@ -1194,12 +1211,15 @@ async function searchUnit() {
     return true;
   });
 
-  // Sling/MPI filter — search across location, equip_unit, and serial number
-  const filteredSl = slData.filter(r =>
-    (r.location||'').toLowerCase().includes(qLow) ||
-    (r.equip_unit||'').toLowerCase().includes(qLow) ||
-    (r.serial_number||'').toLowerCase().includes(qLow)
-  );
+  // Sling/MPI filter — search across location, equip_unit, and serial number + inspection type
+  const filteredSl = slData.filter(r => {
+    const matchQ = (r.location||'').toLowerCase().includes(qLow) ||
+      (r.equip_unit||'').toLowerCase().includes(qLow) ||
+      (r.serial_number||'').toLowerCase().includes(qLow);
+    if (!matchQ) return false;
+    if (inspFilter && (r.inspection_type||'').toLowerCase() !== inspFilter) return false;
+    return true;
+  });
 
   let html = '';
 
@@ -1224,6 +1244,7 @@ function clearUnit() {
   unitActiveFilter = 'all';
   ['uaf-all','uaf-yes','uaf-no'].forEach(id => { const el=document.getElementById(id); if(el) el.classList.remove('active'); });
   const allBtn = document.getElementById('uaf-all'); if (allBtn) allBtn.classList.add('active');
+  const inspSel = document.getElementById('unit-insp-filter'); if (inspSel) inspSel.value = '';
   document.getElementById('unit-results').innerHTML='<div class="empty">Enter a unit number to search</div>';
 }
 
