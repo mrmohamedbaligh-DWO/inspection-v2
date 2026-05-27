@@ -351,6 +351,14 @@
         <button class="search-btn" onclick="searchUnit()">Search</button>
         <button class="clear-btn" onclick="clearUnit()">✕</button>
       </div>
+      <div id="unit-active-filter-row" style="display:none;margin-top:8px;">
+        <div class="search-label" style="margin-bottom:5px;">Filter by Status</div>
+        <div class="filter-btns">
+          <button class="filter-btn active" id="uaf-all" onclick="setUnitActiveFilter('all')">All</button>
+          <button class="filter-btn" id="uaf-yes" onclick="setUnitActiveFilter('yes')">✅ Active</button>
+          <button class="filter-btn" id="uaf-no" onclick="setUnitActiveFilter('no')">❌ Inactive</button>
+        </div>
+      </div>
     </div>
   </div>
   <div class="results-area" id="unit-results"><div class="empty">Enter a unit number to search</div></div>
@@ -778,6 +786,7 @@ function onLoginSuccess() {
     document.getElementById('report-btn').style.display = 'block';
     document.getElementById('tab-users-btn').style.display = 'block';
     document.getElementById('inactive-kpi-section').style.display = 'block';
+    document.getElementById('unit-active-filter-row').style.display = 'block';
   }
   loadAllData();
 }
@@ -791,6 +800,7 @@ function doLogout() {
   document.getElementById('report-btn').style.display = 'none';
   document.getElementById('tab-users-btn').style.display = 'none';
   document.getElementById('inactive-kpi-section').style.display = 'none';
+  document.getElementById('unit-active-filter-row').style.display = 'none';
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').style.display = 'none';
@@ -1152,6 +1162,16 @@ function filterDash(type, source) {
 }
 
 // ── Unit Search ────────────────────────────────────────────
+let unitActiveFilter = 'all';
+
+function setUnitActiveFilter(val) {
+  unitActiveFilter = val;
+  ['uaf-all','uaf-yes','uaf-no'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(`uaf-${val}`).classList.add('active');
+  // Re-run search live if there's already a query
+  if (document.getElementById('unit-input').value.trim()) searchUnit();
+}
+
 async function searchUnit() {
   const q = document.getElementById('unit-input').value.trim();
   if (!q) return;
@@ -1161,11 +1181,17 @@ async function searchUnit() {
   const qLow = q.toLowerCase();
   const isAdmin = currentRole === 'Admin';
 
-  // Equipment filter
+  // Equipment filter — query match + visibility + active/inactive filter
   const filteredEq = eqData.filter(r => {
     const matchQ = r.unit_number.toLowerCase().includes(qLow);
+    if (!matchQ) return false;
     const isActive = (r.active||'').toLowerCase() === 'yes';
-    return matchQ && (isAdmin ? true : isActive);
+    // Non-admins only ever see active items
+    if (!isAdmin) return isActive;
+    // Admin: apply the chosen status filter
+    if (unitActiveFilter === 'yes') return isActive;
+    if (unitActiveFilter === 'no') return !isActive;
+    return true;
   });
 
   // Sling/MPI filter — search across location, equip_unit, and serial number
@@ -1178,20 +1204,28 @@ async function searchUnit() {
   let html = '';
 
   if (filteredEq.length) {
-    html += `<div class="section-label">${filteredEq.length} Equipment items</div>` + renderEqCards(filteredEq, 'var(--unit-header)');
+    const lbl = unitActiveFilter==='yes' ? 'Active ' : unitActiveFilter==='no' ? 'Inactive ' : '';
+    html += `<div class="section-label">${filteredEq.length} ${lbl}Equipment items</div>` + renderEqCards(filteredEq, 'var(--unit-header)');
   }
 
-  if (filteredSl.length) {
+  // Slings only show when status filter is "all" or "active" (slings have no active flag, treat as always-on)
+  if (filteredSl.length && unitActiveFilter !== 'no') {
     html += `<div class="section-label" style="margin-top:8px;">Sling / MPI — ${filteredSl.length} items matching</div>` + renderSlingCards(filteredSl);
   }
 
-  if (!filteredEq.length && !filteredSl.length) {
+  if (!html) {
     html = '<div class="empty">No results found</div>';
   }
 
   area.innerHTML = html;
 }
-function clearUnit() { document.getElementById('unit-input').value=''; document.getElementById('unit-results').innerHTML='<div class="empty">Enter a unit number to search</div>'; }
+function clearUnit() {
+  document.getElementById('unit-input').value='';
+  unitActiveFilter = 'all';
+  ['uaf-all','uaf-yes','uaf-no'].forEach(id => { const el=document.getElementById(id); if(el) el.classList.remove('active'); });
+  const allBtn = document.getElementById('uaf-all'); if (allBtn) allBtn.classList.add('active');
+  document.getElementById('unit-results').innerHTML='<div class="empty">Enter a unit number to search</div>';
+}
 
 // ── Package Search ─────────────────────────────────────────
 let pkgEqResults = [], pkgSlResults = [];
