@@ -623,35 +623,49 @@
 const SUPABASE_URL = 'https://zgsxvutcynigrfbosmvm.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpnc3h2dXRjeW5pZ3JmYm9zbXZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0ODczMDIsImV4cCI6MjA5MjA2MzMwMn0.rG432Q-L3pL34HL2q2fvt_Z1nHViiwc8nCZcocwKNmk';
 
-const api = async (table, params = '') => {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
+// ── Supabase API layer (unified headers + retry + error handling) ──
+const SB_HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
+// Core request with automatic retry on transient network/server failures
+async function sbRequest(path, options = {}, retries = 2) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: SB_HEADERS, ...options });
+      if (!res.ok) {
+        const txt = await res.text().catch(()=> '');
+        // Retry only on server-side errors (5xx); fail fast on 4xx
+        if (res.status >= 500 && attempt < retries) { await sbDelay(attempt); continue; }
+        throw new Error(`HTTP ${res.status}${txt ? ' — '+txt.slice(0,120) : ''}`);
+      }
+      // DELETE / empty bodies won't have JSON
+      const text = await res.text();
+      return text ? JSON.parse(text) : [];
+    } catch (e) {
+      lastErr = e;
+      // Network-level failure (offline, timeout) → retry with small backoff
+      if (attempt < retries && (e.name === 'TypeError' || /Failed to fetch|NetworkError/i.test(e.message))) {
+        await sbDelay(attempt);
+        continue;
+      }
+      break;
     }
-  });
-  return res.json();
-};
+  }
+  console.error('Supabase request failed:', path, lastErr);
+  throw lastErr;
+}
 
-const apiPost = async (table, data) => {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-    method: 'POST',
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-    body: JSON.stringify(data)
-  });
-  return res.json();
-};
+function sbDelay(attempt) { return new Promise(r => setTimeout(r, 400 * (attempt + 1))); }
 
-const apiPatch = async (table, filter, data) => {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
-    method: 'PATCH',
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-    body: JSON.stringify(data)
-  });
-  return res.json();
-};
+const api = (table, params = '') => sbRequest(`${table}${params}`, { method: 'GET' });
+const apiPost = (table, data) => sbRequest(table, { method: 'POST', body: JSON.stringify(data) });
+const apiPatch = (table, filter, data) => sbRequest(`${table}?${filter}`, { method: 'PATCH', body: JSON.stringify(data) });
+const apiDelete = (table, filter) => sbRequest(`${table}?${filter}`, { method: 'DELETE' });
 
 let currentUser = null, currentRole = null;
 let eqData = [], slData = [], auditData = [];
@@ -815,7 +829,11 @@ async function loadAllData() {
     renderCharts();
     document.getElementById('dash-results').innerHTML = '<div class="empty">Tap a card above to view equipment</div>';
   } catch(e) {
-    showToast('Could not load data');
+    console.error('loadAllData failed:', e);
+    showToast('Could not load data — check connection');
+    document.getElementById('dash-results').innerHTML =
+      '<div class="empty">⚠️ Could not load data.<br>Please check your connection.<br><br>' +
+      '<button onclick="loadAllData()" style="background:var(--navy);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">↻ Retry</button></div>';
   }
 }
 
@@ -1694,10 +1712,7 @@ async function addUser() {
 async function deleteUser(id, username) {
   if (!confirm(`Delete user "${username}"?\nThis cannot be undone.`)) return;
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${id}`, {
-      method: 'DELETE',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
+    await apiDelete('users', `id=eq.${id}`);
     await apiPost('audit_log', {username: currentUser, action: 'Delete User', sheet: 'system', details: `Deleted user: ${username}`});
     showToast(`🗑 User "${username}" deleted`);
     loadUsers();
@@ -1757,16 +1772,7 @@ async function toggleUnitActive(unit, currentlyActive) {
   const action = currentlyActive ? 'Deactivate' : 'Activate';
   if (!confirm(`${action} all equipment in unit "${unit}"?`)) return;
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/equipment?unit_number=eq.${encodeURIComponent(unit)}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify({active: newStatus})
-    });
+    await apiPatch('equipment', `unit_number=eq.${encodeURIComponent(unit)}`, {active: newStatus});
     // Update local data
     eqData.forEach(r => { if (r.unit_number===unit) r.active = newStatus; });
     await apiPost('audit_log', {
@@ -1819,16 +1825,7 @@ async function saveBulkPkg() {
   
   try {
     // Update all items with this unit number in Supabase
-    await fetch(`${SUPABASE_URL}/rest/v1/equipment?unit_number=eq.${encodeURIComponent(bulkPkgUnit)}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify({package_id: newPkg})
-    });
+    await apiPatch('equipment', `unit_number=eq.${encodeURIComponent(bulkPkgUnit)}`, {package_id: newPkg});
     
     // Update local data
     const count = eqData.filter(r => r.unit_number === bulkPkgUnit).length;
@@ -1861,10 +1858,7 @@ async function saveBulkPkg() {
 async function deleteItem(table, id, name) {
   if (!confirm(`Delete "${name}"?\nThis cannot be undone.`)) return;
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
-      method: 'DELETE',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
+    await apiDelete(table, `id=eq.${id}`);
     await apiPost('audit_log', {username:currentUser, action:'Delete', sheet:table, details:name});
     if (table==='equipment') {
       eqData = eqData.filter(r=>r.id!==id);
