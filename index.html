@@ -569,6 +569,21 @@
   </div>
 </div>
 
+<!-- Rename Unit Modal -->
+<div class="modal-overlay" id="rename-unit-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="rename-unit-old">Unit Number</div>
+    <div class="modal-sub">Rename this unit for all its items</div>
+    <div class="modal-label">New Unit Number</div>
+    <input class="modal-input" type="text" id="rename-unit-input" placeholder="e.g. OHS-541" />
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeRenameUnit()">Cancel</button>
+      <button class="btn-save" id="rename-unit-save-btn" onclick="saveRenameUnit()">Rename All</button>
+    </div>
+  </div>
+</div>
+
 <!-- Report Modal -->
 <div class="report-modal" id="report-modal">
   <div class="report-box">
@@ -1376,11 +1391,12 @@ function renderEqCards(data, headerColor) {
       </div>`;
     }).join('');
     const isUnitActive = g.items.some(i => (i.active||'').toLowerCase()==='yes');
+    const renameBtn = currentRole==='Admin' ? `<button onclick="event.stopPropagation();openRenameUnit('${unit}')" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:4px;">✏️ Unit</button>` : '';
     const pkgBtn = currentRole==='Admin' ? `<button onclick="event.stopPropagation();openBulkPkg('${unit}')" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:4px;">📦 Pkg</button>` : '';
     const activeBtn = currentRole==='Admin' ? `<button onclick="event.stopPropagation();toggleUnitActive('${unit}',${isUnitActive})" style="background:${isUnitActive?'rgba(0,176,80,0.3)':'rgba(200,0,0,0.3)'};color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:6px;">${isUnitActive?'✅ Active':'❌ Inactive'}</button>` : '';
     return `<div class="result-card"><div class="result-card-header" style="background:${headerColor||'var(--navy)'}">
       <div><div class="rch-name">${unit}</div><div class="rch-sub">${g.category} · ${g.items.length} item(s)${g.pkg?' · 📦 '+g.pkg:''}</div></div>
-      <div style="display:flex;align-items:center;">${pkgBtn}${activeBtn}<span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:2px;">${renameBtn}${pkgBtn}${activeBtn}<span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>
       </div>${rows}</div>`;
   }).join('');
 }
@@ -1906,6 +1922,70 @@ async function saveBulkPkg() {
     showToast('Error updating');
   } finally {
     btn.textContent = 'Update All'; btn.disabled = false;
+  }
+}
+
+// ── Rename Unit (all items) ────────────────────────────────
+let renameUnitOld = '';
+
+function openRenameUnit(unit) {
+  renameUnitOld = unit;
+  document.getElementById('rename-unit-old').textContent = unit;
+  document.getElementById('rename-unit-input').value = unit;
+  document.getElementById('rename-unit-modal').classList.add('active');
+  setTimeout(() => document.getElementById('rename-unit-input').focus(), 300);
+}
+
+function closeRenameUnit() {
+  document.getElementById('rename-unit-modal').classList.remove('active');
+  renameUnitOld = '';
+}
+
+document.getElementById('rename-unit-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('rename-unit-modal')) closeRenameUnit();
+});
+
+async function saveRenameUnit() {
+  const newUnit = document.getElementById('rename-unit-input').value.trim();
+  if (!newUnit) { showToast('Please enter a unit number'); return; }
+  if (newUnit === renameUnitOld) { closeRenameUnit(); return; }
+
+  const btn = document.getElementById('rename-unit-save-btn');
+  btn.textContent = 'Renaming...'; btn.disabled = true;
+
+  try {
+    // Update all items with the old unit number in Supabase
+    await apiPatch('equipment', `unit_number=eq.${encodeURIComponent(renameUnitOld)}`, {unit_number: newUnit});
+
+    // Update local data
+    const count = eqData.filter(r => r.unit_number === renameUnitOld).length;
+    eqData.forEach(r => { if (r.unit_number === renameUnitOld) r.unit_number = newUnit; });
+
+    await apiPost('audit_log', {
+      username: currentUser,
+      action: 'Rename Unit',
+      sheet: 'equipment',
+      details: `${renameUnitOld} → ${newUnit} | ${count} items`
+    });
+
+    const oldUnit = renameUnitOld;
+    closeRenameUnit();
+    updateKPIs();
+    showToast(`✓ Renamed ${count} items: ${oldUnit} → ${newUnit}`);
+
+    // Refresh current view
+    const activeTab = document.querySelector('.tab.active').getAttribute('onclick');
+    if (activeTab.includes('unit')) searchUnit();
+    else if (activeTab.includes('package')) searchPackage();
+    else {
+      document.getElementById('eq-accordion').classList.remove('open');
+      document.getElementById('eq-accordion').innerHTML = '';
+      activeEqCard = null;
+    }
+  } catch(e) {
+    showToast('Error renaming');
+  } finally {
+    btn.textContent = 'Rename All'; btn.disabled = false;
   }
 }
 
