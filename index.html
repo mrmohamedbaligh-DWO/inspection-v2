@@ -1238,14 +1238,13 @@ async function searchUnit() {
 
   let html = '';
 
-  if (filteredEq.length) {
-    const lbl = unitActiveFilter==='yes' ? 'Active ' : unitActiveFilter==='no' ? 'Inactive ' : '';
-    html += `<div class="section-label">${filteredEq.length} ${lbl}Equipment items</div>` + renderEqCards(filteredEq, 'var(--unit-header)');
-  }
-
   // Slings only show when status filter is "all" or "active" (slings have no active flag, treat as always-on)
-  if (filteredSl.length && unitActiveFilter !== 'no') {
-    html += `<div class="section-label" style="margin-top:8px;">Sling / MPI — ${filteredSl.length} items matching</div>` + renderSlingCards(filteredSl);
+  const slToShow = (unitActiveFilter === 'no') ? [] : filteredSl;
+
+  if (filteredEq.length || slToShow.length) {
+    const lbl = unitActiveFilter==='yes' ? 'Active ' : unitActiveFilter==='no' ? 'Inactive ' : '';
+    const totalCount = filteredEq.length + slToShow.length;
+    html += `<div class="section-label">${totalCount} ${lbl}item(s) matching</div>` + renderUnitGrouped(filteredEq, slToShow, 'var(--unit-header)');
   }
 
   if (!html) {
@@ -1329,11 +1328,9 @@ function applyPackageEquipFilter() {
 
 function renderPackageResults(eqList, slList) {
   let html = '';
-  if (eqList.length) {
-    html += `<div class="section-label">Equipment — ${eqList.length} items</div>` + renderEqCards(eqList, 'var(--blue)');
-  }
-  if (slList.length) {
-    html += `<div class="section-label" style="margin-top:8px;">Sling / MPI — ${slList.length} items</div>` + renderSlingCards(slList);
+  const total = (eqList?.length || 0) + (slList?.length || 0);
+  if (total > 0) {
+    html += `<div class="section-label">${total} item(s) in package</div>` + renderUnitGrouped(eqList, slList, 'var(--blue)');
   }
   document.getElementById('pkg-results').innerHTML = html || '<div class="empty">No results found</div>';
 }
@@ -1427,6 +1424,90 @@ function renderSlingCards(data) {
     return `<div class="result-card"><div class="result-card-header" style="background:var(--blue)">
       <div><div class="rch-name">${type}</div><div class="rch-sub">${items.length} item(s)</div></div>
       <span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>${rows}</div>`;
+  }).join('');
+}
+
+// ── Unit-Grouped Render (Equipment + Sling/MPI together under each unit) ──
+function renderUnitGrouped(eqList, slList, headerColor) {
+  // Group everything by unit number. For sling/MPI we use equip_unit (the linked unit).
+  const groups = {};
+  const ensure = (unit) => {
+    if (!groups[unit]) groups[unit] = {category:'', pkg:'', eq:[], slByType:{}};
+    return groups[unit];
+  };
+
+  (eqList||[]).forEach(r => {
+    const unit = r.unit_number || '—';
+    const g = ensure(unit);
+    if (r.category && !g.category) g.category = r.category;
+    if (r.package_id) g.pkg = r.package_id;
+    g.eq.push(r);
+  });
+
+  (slList||[]).forEach(r => {
+    const unit = r.equip_unit || r.location || '—';
+    const g = ensure(unit);
+    const type = r.equipment_type || 'Sling/MPI';
+    if (!g.slByType[type]) g.slByType[type] = [];
+    g.slByType[type].push(r);
+  });
+
+  return Object.entries(groups).map(([unit, g]) => {
+    // Aggregate worst status across ALL items in the unit
+    const allItems = [...g.eq, ...Object.values(g.slByType).flat()];
+    const totalCount = allItems.length;
+    if (!totalCount) return '';
+    const statuses = allItems.map(i => getStatus(i.expiry_date));
+    let us = 'valid';
+    if (statuses.includes('expired')) us='expired';
+    else if (statuses.includes('expiring')) us='expiring';
+    else if (statuses.includes('watch')) us='watch';
+    const badgeStyle = {expired:'background:#FFEBEB;color:var(--red)',expiring:'background:#FFF3EB;color:var(--orange)',watch:'background:#FFFBEB;color:#7a5800',valid:'background:#EAFAF0;color:var(--green)'}[us];
+
+    // Admin buttons (only meaningful if there are equipment items in the unit)
+    const isUnitActive = g.eq.length ? g.eq.some(i => (i.active||'').toLowerCase()==='yes') : false;
+    const showAdminBtns = currentRole==='Admin' && g.eq.length > 0;
+    const renameBtn = showAdminBtns ? `<button onclick="event.stopPropagation();openRenameUnit('${unit}')" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:4px;">✏️ Unit</button>` : '';
+    const pkgBtn = showAdminBtns ? `<button onclick="event.stopPropagation();openBulkPkg('${unit}')" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:4px;">📦 Pkg</button>` : '';
+    const activeBtn = showAdminBtns ? `<button onclick="event.stopPropagation();toggleUnitActive('${unit}',${isUnitActive})" style="background:${isUnitActive?'rgba(0,176,80,0.3)':'rgba(200,0,0,0.3)'};color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;margin-right:6px;">${isUnitActive?'✅ Active':'❌ Inactive'}</button>` : '';
+
+    // Equipment rows
+    let body = '';
+    if (g.eq.length) {
+      body += `<div style="padding:6px 13px 4px;font-size:9px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:0.5px;background:var(--unit-header);">⚙️ Equipment</div>`;
+      body += g.eq.map(item => {
+        const s = getStatus(item.expiry_date);
+        const delBtn = currentRole==='Admin' ? `<button class="btn-delete" onclick="event.stopPropagation();deleteItem('equipment','${item.id}','${(item.equipment||'').replace(/'/g,'')}')" >🗑</button>` : '';
+        return `<div class="equip-row" onclick='openEditEq(${JSON.stringify(item)})'>
+          <div style="flex:1;min-width:0;"><div class="eq-name">${item.equipment||'—'}</div><div class="eq-sub">${item.inspection_type||''}${item.serial_number?' · '+item.serial_number:''}</div></div>
+          <div class="eq-right" style="display:flex;align-items:center;gap:6px;"><div style="text-align:right;"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>${delBtn}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // Sling/MPI rows, grouped by type (Gooseneck / Sling / etc.)
+    Object.entries(g.slByType).forEach(([type, items]) => {
+      body += `<div style="padding:6px 13px 4px;font-size:9px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:0.5px;background:var(--unit-header);">⛓️ ${type}</div>`;
+      body += items.map(item => {
+        const s = getStatus(item.expiry_date);
+        const delBtn = currentRole==='Admin' ? `<button class="btn-delete" onclick="event.stopPropagation();deleteItem('sling_mpi','${item.id}','${(item.serial_number||'').replace(/'/g,'')}')" >🗑</button>` : '';
+        return `<div class="equip-row" onclick='openEditSl(${JSON.stringify(item)})'>
+          <div style="flex:1;min-width:0;"><div class="eq-name">${item.serial_number||'—'}</div>
+          <div class="eq-sub">${item.inspection_type||''}${item.capacity_ton?' · '+item.capacity_ton+'T':''}${item.location?' · 📍 '+item.location:''}</div></div>
+          <div class="eq-right" style="display:flex;align-items:center;gap:6px;"><div style="text-align:right;"><div class="eq-date" style="color:${dateColor(s)}">${fmtDate(item.expiry_date)}</div>${statusPill(s)}</div>${delBtn}</div>
+        </div>`;
+      }).join('');
+    });
+
+    const subParts = [];
+    if (g.category) subParts.push(g.category);
+    subParts.push(`${totalCount} item(s)`);
+    if (g.pkg) subParts.push('📦 '+g.pkg);
+
+    return `<div class="result-card"><div class="result-card-header" style="background:${headerColor||'var(--unit-header)'}">
+      <div><div class="rch-name">${unit}</div><div class="rch-sub">${subParts.join(' · ')}</div></div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:2px;">${renameBtn}${pkgBtn}${activeBtn}<span class="rch-badge" style="${badgeStyle}">${statusLabel(us)}</span></div>
+      </div>${body}</div>`;
   }).join('');
 }
 
