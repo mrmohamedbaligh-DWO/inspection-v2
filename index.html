@@ -381,9 +381,9 @@
         <button class="clear-btn" onclick="clearPackage()">✕</button>
       </div>
       <div id="pkg-equip-filter-row" style="display:none;margin-top:8px;">
-        <div class="search-label" style="margin-bottom:5px;">Filter by Equipment</div>
+        <div class="search-label" style="margin-bottom:5px;">Filter by Category</div>
         <select class="search-input" id="pkg-equip-filter" style="width:100%;" onchange="applyPackageEquipFilter()">
-          <option value="">All Equipment</option>
+          <option value="">All Categories</option>
         </select>
       </div>
     </div>
@@ -1294,24 +1294,25 @@ async function searchPackage() {
     return;
   }
 
-  // Build dropdown from equipment names + sling types actually present in this package.
-  // Group by normalized name (trim + lowercase) so duplicates with stray spaces/case merge into one.
+  // Build dropdown from unit categories actually present in this package.
+  // Group sling/MPI by equipment_type as its category (since sling has no `category` column).
+  // Count UNIQUE UNITS per category (not individual items) so the number matches the grouped card view.
   const norm = (x) => (x||'').trim().toLowerCase();
-  const typeMap = {}; // normalized -> { label, count }
+  const catMap = {}; // normalized -> { label, units: Set }
   pkgEqResults.forEach(r => {
-    const n = norm(r.equipment);
+    const n = norm(r.category);
     if (!n) return;
-    if (!typeMap[n]) typeMap[n] = { label: (r.equipment||'').trim(), count: 0 };
-    typeMap[n].count++;
+    if (!catMap[n]) catMap[n] = { label: (r.category||'').trim(), units: new Set() };
+    catMap[n].units.add(r.unit_number || '—');
   });
   pkgSlResults.forEach(r => {
     const n = norm(r.equipment_type);
     if (!n) return;
-    if (!typeMap[n]) typeMap[n] = { label: (r.equipment_type||'').trim(), count: 0 };
-    typeMap[n].count++;
+    if (!catMap[n]) catMap[n] = { label: (r.equipment_type||'').trim(), units: new Set() };
+    catMap[n].units.add(r.equip_unit || r.location || '—');
   });
-  const entries = Object.values(typeMap).sort((a,b)=>a.label.localeCompare(b.label));
-  sel.innerHTML = '<option value="">All Items</option>' + entries.map(e=>`<option value="${e.label}">${e.label} (${e.count})</option>`).join('');
+  const entries = Object.values(catMap).map(e => ({label: e.label, count: e.units.size})).sort((a,b)=>a.label.localeCompare(b.label));
+  sel.innerHTML = '<option value="">All Categories</option>' + entries.map(e=>`<option value="${e.label}">${e.label} (${e.count})</option>`).join('');
   sel.value = '';
   filterRow.style.display = entries.length ? 'block' : 'none';
 
@@ -1321,7 +1322,7 @@ async function searchPackage() {
 function applyPackageEquipFilter() {
   const val = (document.getElementById('pkg-equip-filter').value || '').trim().toLowerCase();
   const norm = (x) => (x||'').trim().toLowerCase();
-  const eqF = val ? pkgEqResults.filter(r => norm(r.equipment) === val) : pkgEqResults;
+  const eqF = val ? pkgEqResults.filter(r => norm(r.category) === val) : pkgEqResults;
   const slF = val ? pkgSlResults.filter(r => norm(r.equipment_type) === val) : pkgSlResults;
   renderPackageResults(eqF, slF);
 }
