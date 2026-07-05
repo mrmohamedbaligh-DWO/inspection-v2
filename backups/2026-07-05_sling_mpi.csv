@@ -124,7 +124,6 @@ ade26dae-16f0-4451-9beb-f89626964149,"Wire Rope Pulling Sling","Visual Inspectio
 14cf63e4-720c-4d56-9aca-e7175705da8d,"Wire Rope Pulling Hoist","Visual Inspection",407230266,2026-08-04,Valid,3.2,"",TB-713,"2026-04-18 11:15:20.569001+00",
 18d4fb48-182c-4d7c-a902-9325ce518231,"Wire Rope Pulling Sling","Visual Inspection",NPS-5021,2026-08-03,Valid,3.3,1,TB-713,"2026-04-18 11:15:20.569001+00",
 aa73f976-2a22-4a8f-a098-88038c0e95ef,"Wire Rope Pulling Sling","Visual Inspection",NPS-5024,2026-08-03,Valid,3.3,1,TB-713,"2026-04-18 11:15:20.569001+00",
-1a208b00-6c5c-42da-aa95-dc45f1ca0af8,Chain,"Visual Inspection",NPS-2870,2026-09-27,Valid,3.15,1,Yard,"2026-04-18 11:15:20.569001+00",
 c7472e96-3eae-4f83-a81c-f0e73383a33b,Chain,"Visual Inspection",NPS-3941,2026-09-27,Valid,3.15,1,Yard,"2026-04-18 11:15:20.569001+00",
 e0de3f25-123c-4322-8ec8-ac1e773d51d3,Chain,"Visual Inspection",2189-05,2026-09-27,Valid,3.15,1,Yard,"2026-04-18 11:15:20.569001+00",
 002c743e-21ac-40d6-b7c6-522c803e0e5e,Chain,"Visual Inspection",2189-09,2026-09-27,Valid,3.15,1,Yard,"2026-04-18 11:15:20.569001+00",
@@ -137,15 +136,13 @@ d43b58c4-1b87-43b1-92a8-4a57fb15ada1,Chain,"Visual Inspection",NPS-3286,2026-09-
 d5e281ae-30f5-4d96-aa39-ea8874bfec8a,Boomer,"Visual Inspection",YT-164,2026-08-04,Valid,"","",TB-703,"2026-04-18 11:15:20.569001+00",
 baaf2647-0e7b-471a-8d61-bd0fef3510c6,Boomer,"Visual Inspection",YT-142,2026-09-23,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",
 0f5adf9b-a3aa-41ab-a027-f982357cd53c,Boomer,"Visual Inspection",AD-28,2026-07-18,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",
-7aaff079-2320-4d0f-ac23-9f9f49ad16b4,Boomer,"Visual Inspection",B-25-02,2026-09-23,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",
 50054873-08a6-460a-8080-dc3bbfa38680,"Fall Arrestor","Visual Inspection",7432,2026-06-27,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",
 e686642b-271e-4105-a532-b290c86e18bd,"Fall Arrestor","Visual Inspection",19277,2026-06-27,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",
 b979bb48-e7b2-4e55-b7a7-1ee6d9b5a129,Sling,"Visual Inspection",NPS-3783,2026-09-27,Valid,27.6,4,PU-12,"2026-04-18 11:15:20.569001+00",
 73277ec5-5920-42ca-a554-f7cc7af568ff,Boomer,"Visual Inspection",NPS-3918,2026-10-19,"Expiring Soon","","",Yard,"2026-04-18 11:15:20.569001+00",
 3f42aa3b-d4ad-408f-ac01-68539667ffe1,Boomer,"Visual Inspection",NPS-4282,2026-10-19,Expired,"","",CTU-724,"2026-04-18 11:15:20.569001+00",TB-710
 95432ce5-7c22-45b3-adaa-1d96d3c1d3ff,Boomer,"Visual Inspection",2189-06,2026-10-19,"Expiring Soon","","",CTU-724,"2026-04-18 11:15:20.569001+00",TB-710
-d941b312-3f9a-444c-8c7f-17253225dbd4,Boomer,"Visual Inspection",YT-03,2026-10-19,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",
-d5121dcf-41b1-4e7e-9459-990efd965cef,Boomer,"Visual Inspection",NPS-3927,2026-12-03,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",""
+d5121dcf-41b1-4e7e-9459-990efd965cef,Boomer,"Visual Inspection",NPS-3927,2026-12-03,Valid,"","",WR-32,"2026-04-18 11:15:20.569001+00",""
 07dbc468-9f6a-4cff-bfb1-ad3df2a71a02,Boomer,"Visual Inspection",FJ-8075,2026-10-19,"Expiring Soon","","",Yard,"2026-04-18 11:15:20.569001+00",
 dab2a9de-c3a5-4e2a-8681-b49099a687a5,"Come Along","Visual Inspection",410280052,2026-09-23,Valid,3,"",CTU-724,"2026-04-18 11:15:20.569001+00",TB-710
 16e4d825-ac8a-46be-b339-bfbd9de70b1a,Chain,"Visual Inspection",NPS-2440,2026-10-19,"Expiring Soon",3.15,1,Yard,"2026-04-18 11:15:20.569001+00",
@@ -175,7 +172,10 @@ d38b6cd3-0a4d-4786-aebb-dc2f1ae5f5ef,Sling,"Visual Inspection",NPS-3772,2026-09-
 cc9cca32-40f7-4c1a-a479-caed81480c70,"Wire Rope Pulling Sling","Visual Inspection",NPS-5020,2026-09-23,Valid,3.3,1,CTU-724,"2026-04-18 11:15:20.569001+00",TB-710
 04869865-3ec0-4a23-a7d7-f240c24d47a7,Sling,"Visual Inspection",NPS-2639,2026-09-03,Valid,10,1,Yard,"2026-04-18 11:15:20.569001+00",""
 521be4da-8c68-4aac-815b-5173c811726e,Boomer,"Visual Inspection",NPS4277,2026-07-24,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",""
+1a208b00-6c5c-42da-aa95-dc45f1ca0af8,Chain,"Visual Inspection",NPS-2870,2026-09-27,Valid,3.15,1,WR-51,"2026-04-18 11:15:20.569001+00",""
 9dedc2a3-23fc-4651-8522-5ab3b91a85be,Sling,"Visual Inspection",NPS-2032,2026-08-03,Valid,10,1,CTU-722,"2026-04-18 11:15:20.569001+00",TB-713
+7aaff079-2320-4d0f-ac23-9f9f49ad16b4,Boomer,"Visual Inspection",B-25-02,2026-09-23,Valid,"","",WR-51,"2026-04-18 11:15:20.569001+00",""
+d941b312-3f9a-444c-8c7f-17253225dbd4,Boomer,"Visual Inspection",YT-03,2026-10-19,Valid,"","",WR-32,"2026-04-18 11:15:20.569001+00",""
 b27c0eee-ff64-4dc4-bef2-868e3274f0f7,Sling,"Visual Inspection",MF-118,2026-08-06,Valid,18,4,N2-410,"2026-04-18 11:15:20.569001+00",
 2ee0073a-9dc7-47e2-bdc5-d970a6ec2bf7,Sling,"Visual Inspection",076667-003A,2026-08-06,Valid,13.6,4,N2-416,"2026-04-18 11:15:20.569001+00",
 d6a6cce5-229d-4d1b-ac4e-0b9a79b64978,Sling,"Visual Inspection",SA-212,2026-08-13,Valid,17.85,4,N2-411,"2026-04-18 11:15:20.569001+00",
