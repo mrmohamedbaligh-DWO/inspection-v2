@@ -129,7 +129,6 @@ d43b58c4-1b87-43b1-92a8-4a57fb15ada1,Chain,"Visual Inspection",NPS-3286,2026-09-
 0c5cf38b-ba79-4464-80d4-350e99c36f6e,"Wire Rope Pulling Hoist","Visual Inspection",407230270,2027-02-15,Valid,3.2,"",CTU-724,"2026-04-18 11:15:20.569001+00",TB-710
 3686ce39-e8aa-4bf1-bcd7-33eee915cea0,"Wire Rope Pulling Hoist","Visual Inspection",401380147,2027-02-15,Valid,3.2,"",CTU-724,"2026-04-18 11:15:20.569001+00",TB-710
 50054873-08a6-460a-8080-dc3bbfa38680,"Fall Arrestor","Visual Inspection",7432,2026-06-27,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",
-e686642b-271e-4105-a532-b290c86e18bd,"Fall Arrestor","Visual Inspection",19277,2026-06-27,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",
 b979bb48-e7b2-4e55-b7a7-1ee6d9b5a129,Sling,"Visual Inspection",NPS-3783,2026-09-27,Valid,27.6,4,PU-12,"2026-04-18 11:15:20.569001+00",
 73277ec5-5920-42ca-a554-f7cc7af568ff,Boomer,"Visual Inspection",NPS-3918,2026-10-19,"Expiring Soon","","",Yard,"2026-04-18 11:15:20.569001+00",
 a491b1ce-8771-42ad-b73f-170a9f94c1ab,"Wire Rope Pulling Hoist","Visual Inspection",401380148,2027-02-15,Valid,3.2,"",CTU-724,"2026-04-18 11:15:20.569001+00",TB-710
@@ -150,6 +149,7 @@ daa57f35-bf03-4c1e-9f5b-90f503dcea34,"Wire Rope Pulling Hoist","Visual Inspectio
 521be4da-8c68-4aac-815b-5173c811726e,Boomer,"Visual Inspection",NPS4277,2027-02-28,Valid,"","",Yard,"2026-04-18 11:15:20.569001+00",""
 16e4d825-ac8a-46be-b339-bfbd9de70b1a,Chain,"Visual Inspection",NPS-2440,2026-10-19,"Expiring Soon",3.15,1,Yard,"2026-04-18 11:15:20.569001+00",""
 0362874a-87f9-4ebb-9a20-40845e308872,"Wire Rope Pulling Hoist","Visual Inspection",410280080,2027-02-15,Valid,3.2,"",Yard,"2026-04-18 11:15:20.569001+00",""
+e686642b-271e-4105-a532-b290c86e18bd,"Fall Arrestor","Visual Inspection",19277,2026-12-30,Valid,"","",TB-713,"2026-04-18 11:15:20.569001+00",""
 8ce6b379-8c0f-400b-9230-7ef61ee7d30f,Sling,"Visual Inspection",GOHS-059,2026-11-20,"Expiring Soon",18,4,CTU-724,"2026-04-18 11:15:20.569001+00","Injector Stand"
 3ab343c2-f707-4c43-886f-10837bc77b40,"Wire Rope Pulling Sling","Visual Inspection",NPS-5018,2027-02-15,Valid,3.2,1,Yard,"2026-04-18 11:15:20.569001+00",""
 cc9cca32-40f7-4c1a-a479-caed81480c70,"Wire Rope Pulling Sling","Visual Inspection",NPS-5020,2027-02-15,Valid,3.3,1,CTU-724,"2026-04-18 11:15:20.569001+00",TB-710
